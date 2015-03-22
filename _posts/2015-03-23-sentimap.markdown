@@ -1,0 +1,24 @@
+---
+layout:     post
+title:      "Inside SentiMap"
+subtitle:   "A How-To on Twitter Sentiment"
+date:       2015-03-23 08:00:00
+author:     "TJ Torres"
+header-img: "img/sentimap.png"
+---
+
+
+## This is a simple test of the markdown language ##
+
+I just want to see if I can get anything out of it.
+
+
+```
+
+def function():
+	here = []
+	for i in range(7):
+		here.append(i)
+
+function()
+```
