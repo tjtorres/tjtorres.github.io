@@ -5,8 +5,8 @@
     <description>This blog details my data science and data visualization projects and thoughts.</description>
     <link>localhost:4000/</link>
     <atom:link href="localhost:4000/feed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Sun, 22 Mar 2015 15:07:38 -0700</pubDate>
-    <lastBuildDate>Sun, 22 Mar 2015 15:07:38 -0700</lastBuildDate>
+    <pubDate>Sun, 22 Mar 2015 15:11:57 -0700</pubDate>
+    <lastBuildDate>Sun, 22 Mar 2015 15:11:57 -0700</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
