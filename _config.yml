@@ -1,10 +1,10 @@
 # Site settings
-title: Clean Blog
-header-img: img/home-bg.jpg
+title: Orthogonal Projections
+header-img: img/escher.jpg
 email: tjtorres@ucsc.edu
 description: "This blog details my data science and data visualization projects and thoughts."
-baseurl: "http://tjtorres.github.io"
-url: "http://tjtorres.github.io"
+baseurl: ""
+url: "localhost:4000"
 #twitter_username: SBootstrap
 github_username:  tjtorres
 #facebook_username:  IronSummitMedia
