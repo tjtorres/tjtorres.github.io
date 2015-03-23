@@ -5,8 +5,8 @@
     <description>This blog details my data science and data visualization projects and thoughts.</description>
     <link>localhost:4000/</link>
     <atom:link href="localhost:4000/feed.xml" rel="self" type="application/rss+xml" />
-    <pubDate>Mon, 23 Mar 2015 00:40:57 -0700</pubDate>
-    <lastBuildDate>Mon, 23 Mar 2015 00:40:57 -0700</lastBuildDate>
+    <pubDate>Mon, 23 Mar 2015 03:17:30 -0700</pubDate>
+    <lastBuildDate>Mon, 23 Mar 2015 03:17:30 -0700</lastBuildDate>
     <generator>Jekyll v2.5.3</generator>
     
       <item>
@@ -76,10 +76,11 @@
 
 &lt;p&gt;Given the amount of text needed to train these models, it is often advantageous to use large corpuses of words with their pre-trained vectors representations. As the original implementation of Word2Vec was invented by a Google engineer, the codebase, as well as &lt;a href=&quot;https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing&quot;&gt;pre-trained vector sets&lt;/a&gt; can be found on their site &lt;a href=&quot;https://code.google.com/p/word2vec/&quot;&gt;here&lt;/a&gt;. For this example we will use their vectors that have been trained on GoogleNews stories.&lt;/p&gt;
 
-&lt;p&gt;Since our vectors are pre-trained we will just need to load the binary file into gensim’s Word2Vec implementation. Vectors for given words are then easily accessible by using the word strings as keys on our model instance. Then we will construct a function to take a string with only letters and whitespace and remove common words of little contextual meaning, called stop words, then output a vector based on the average of the set of words in the string.&lt;/p&gt;
+&lt;p&gt;Since our vectors are pre-trained we will just need to load the binary file into gensim’s Word2Vec implementation. Vectors for given words are then easily accessible by using the word strings as keys on our model instance. Then we will construct a function to take a string with only letters and whitespace and remove common words of little contextual meaning, called stop words, then output a vector based on the average of the set of vectors that correspond to words in the string.&lt;/p&gt;
 
 &lt;div class=&quot;highlighter-coderay&quot;&gt;&lt;div class=&quot;CodeRay&quot;&gt;
   &lt;div class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span style=&quot;color:#080;font-weight:bold&quot;&gt;import&lt;/span&gt; &lt;span style=&quot;color:#B44;font-weight:bold&quot;&gt;gensim&lt;/span&gt; &lt;span style=&quot;color:#080;font-weight:bold&quot;&gt;as&lt;/span&gt; gs
+&lt;span style=&quot;color:#080;font-weight:bold&quot;&gt;import&lt;/span&gt; &lt;span style=&quot;color:#B44;font-weight:bold&quot;&gt;numpy&lt;/span&gt; &lt;span style=&quot;color:#080;font-weight:bold&quot;&gt;as&lt;/span&gt; np
 
 model = gs.models.Word2Vec.load_word2vec_format(&lt;span style=&quot;background-color:hsla(0,100%,50%,0.05)&quot;&gt;&lt;span style=&quot;color:#710&quot;&gt;&#39;&lt;/span&gt;&lt;span style=&quot;color:#D20&quot;&gt;./GoogleNews-vectors-negative300.bin&lt;/span&gt;&lt;span style=&quot;color:#710&quot;&gt;&#39;&lt;/span&gt;&lt;/span&gt;, binary=&lt;span style=&quot;color:#069&quot;&gt;True&lt;/span&gt;)
 
@@ -98,6 +99,41 @@ model = gs.models.Word2Vec.load_word2vec_format(&lt;span style=&quot;background-
         size=&lt;span style=&quot;color:#00D&quot;&gt;1&lt;/span&gt;
     &lt;span style=&quot;color:#080;font-weight:bold&quot;&gt;return&lt;/span&gt; np.divide(vec,size)
 
+&lt;/pre&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;p&gt;We now have a nice function for vectorizing tweets, once they have been properly formatted.&lt;/p&gt;
+
+&lt;h2 id=&quot;cleaning-the-data&quot;&gt;Cleaning the Data&lt;/h2&gt;
+
+&lt;p&gt;Next, we’ll need to get some training data to run our feature extraction method on. Though there are several Twitter sentiment corpora on the web, many of them sacrifice sample size for accuracy of classification of the training set. Since we are dealing with the potentially very powerful, but somewhat nebulous, concept of word vectors we should choose instead to err on the side of a much larger training set, with perhaps a slight hit to classification accuracy. This can be accomplished by creating heuristics for classification rather than relying on manual techniques. The &lt;a href=&quot;http://help.sentiment140.com/for-students/&quot;&gt;Sentiment 140 Corpus&lt;/a&gt; constructs its sentiment classification heuristic on tweets that contain emoticons. Of the tweets that contain emoticons, those that contain mostly positive emoticons are classified as such, and the same goes for the negative set.&lt;/p&gt;
+
+&lt;p&gt;With this heuristic one can immediately automate the data classification task for the training set, which allows for a far greater sample size (in this case 1.6M tweets), at the expense of a possible drop in accuracy.&lt;/p&gt;
+
+&lt;p&gt;To analyze and clean our data we’re going to work with Pandas, but first let’s take a brief look at the format of the training data.&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-coderay&quot;&gt;&lt;div class=&quot;CodeRay&quot;&gt;
+  &lt;div class=&quot;code&quot;&gt;&lt;pre&gt;$head -10 training.1600000.processed.noemoticon.csv
+
+&amp;quot;0&amp;quot;,&amp;quot;1467810369&amp;quot;,&amp;quot;Mon Apr 06 22:19:45 PDT 2009&amp;quot;,&amp;quot;NO_QUERY&amp;quot;,&amp;quot;_TheSpecialOne_&amp;quot;,&amp;quot;@switchfoot http://twitpic.com/2y1zl - Awww, that&#39;s a bummer.  You shoulda got David Carr of Third Day to do it. ;D&amp;quot;
+&amp;quot;0&amp;quot;,&amp;quot;1467810672&amp;quot;,&amp;quot;Mon Apr 06 22:19:49 PDT 2009&amp;quot;,&amp;quot;NO_QUERY&amp;quot;,&amp;quot;scotthamilton&amp;quot;,&amp;quot;is upset that he can&#39;t update his Facebook by texting it... and might cry as a result  School today also. Blah!&amp;quot;
+&amp;quot;0&amp;quot;,&amp;quot;1467810917&amp;quot;,&amp;quot;Mon Apr 06 22:19:53 PDT 2009&amp;quot;,&amp;quot;NO_QUERY&amp;quot;,&amp;quot;mattycus&amp;quot;,&amp;quot;@Kenichan I dived many times for the ball. Managed to save 50%  The rest go out of bounds&amp;quot;
+&amp;quot;0&amp;quot;,&amp;quot;1467811184&amp;quot;,&amp;quot;Mon Apr 06 22:19:57 PDT 2009&amp;quot;,&amp;quot;NO_QUERY&amp;quot;,&amp;quot;ElleCTF&amp;quot;,&amp;quot;my whole body feels itchy and like its on fire &amp;quot;
+$
+&lt;/pre&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;p&gt;From the first few lines you can see the general format of the data and should notice several things. For instance the training data file doesn’t have a header, so we’ll have to name the columns ourselves. Also, the text of the tweets has been formatted to remove emoticons, but still contains plenty of errant strings like URLs and @name tags we’ll need to remove before proceeding to vectorize them.&lt;/p&gt;
+
+&lt;p&gt;First let’s import the csv file and store it as a dataframe.&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-coderay&quot;&gt;&lt;div class=&quot;CodeRay&quot;&gt;
+  &lt;div class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span style=&quot;color:#080;font-weight:bold&quot;&gt;import&lt;/span&gt; &lt;span style=&quot;color:#B44;font-weight:bold&quot;&gt;pandas&lt;/span&gt; &lt;span style=&quot;color:#080;font-weight:bold&quot;&gt;as&lt;/span&gt; pd
+name_list = [&lt;span style=&quot;background-color:hsla(0,100%,50%,0.05)&quot;&gt;&lt;span style=&quot;color:#710&quot;&gt;&#39;&lt;/span&gt;&lt;span style=&quot;color:#D20&quot;&gt;sentiment&lt;/span&gt;&lt;span style=&quot;color:#710&quot;&gt;&#39;&lt;/span&gt;&lt;/span&gt;,&lt;span style=&quot;background-color:hsla(0,100%,50%,0.05)&quot;&gt;&lt;span style=&quot;color:#710&quot;&gt;&#39;&lt;/span&gt;&lt;span style=&quot;color:#D20&quot;&gt;id&lt;/span&gt;&lt;span style=&quot;color:#710&quot;&gt;&#39;&lt;/span&gt;&lt;/span&gt;,&lt;span style=&quot;background-color:hsla(0,100%,50%,0.05)&quot;&gt;&lt;span style=&quot;color:#710&quot;&gt;&#39;&lt;/span&gt;&lt;span style=&quot;color:#D20&quot;&gt;time&lt;/span&gt;&lt;span style=&quot;color:#710&quot;&gt;&#39;&lt;/span&gt;&lt;/span&gt;,&lt;span style=&quot;background-color:hsla(0,100%,50%,0.05)&quot;&gt;&lt;span style=&quot;color:#710&quot;&gt;&#39;&lt;/span&gt;&lt;span style=&quot;color:#D20&quot;&gt;query&lt;/span&gt;&lt;span style=&quot;color:#710&quot;&gt;&#39;&lt;/span&gt;&lt;/span&gt;,&lt;span style=&quot;background-color:hsla(0,100%,50%,0.05)&quot;&gt;&lt;span style=&quot;color:#710&quot;&gt;&#39;&lt;/span&gt;&lt;span style=&quot;color:#D20&quot;&gt;user&lt;/span&gt;&lt;span style=&quot;color:#710&quot;&gt;&#39;&lt;/span&gt;&lt;/span&gt;,&lt;span style=&quot;background-color:hsla(0,100%,50%,0.05)&quot;&gt;&lt;span style=&quot;color:#710&quot;&gt;&#39;&lt;/span&gt;&lt;span style=&quot;color:#D20&quot;&gt;text&lt;/span&gt;&lt;span style=&quot;color:#710&quot;&gt;&#39;&lt;/span&gt;&lt;/span&gt;]
+df = pd.read_csv(&lt;span style=&quot;background-color:hsla(0,100%,50%,0.05)&quot;&gt;&lt;span style=&quot;color:#710&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span style=&quot;color:#D20&quot;&gt;training.1600000.processed.noemoticon.csv&lt;/span&gt;&lt;span style=&quot;color:#710&quot;&gt;&amp;quot;&lt;/span&gt;&lt;/span&gt;,\
+                 header=&lt;span style=&quot;color:#069&quot;&gt;None&lt;/span&gt;, names= name_list)
 &lt;/pre&gt;&lt;/div&gt;
 &lt;/div&gt;
 &lt;/div&gt;

@@ -164,10 +164,11 @@
 
 <p>Given the amount of text needed to train these models, it is often advantageous to use large corpuses of words with their pre-trained vectors representations. As the original implementation of Word2Vec was invented by a Google engineer, the codebase, as well as <a href="https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing">pre-trained vector sets</a> can be found on their site <a href="https://code.google.com/p/word2vec/">here</a>. For this example we will use their vectors that have been trained on GoogleNews stories.</p>
 
-<p>Since our vectors are pre-trained we will just need to load the binary file into gensim’s Word2Vec implementation. Vectors for given words are then easily accessible by using the word strings as keys on our model instance. Then we will construct a function to take a string with only letters and whitespace and remove common words of little contextual meaning, called stop words, then output a vector based on the average of the set of words in the string.</p>
+<p>Since our vectors are pre-trained we will just need to load the binary file into gensim’s Word2Vec implementation. Vectors for given words are then easily accessible by using the word strings as keys on our model instance. Then we will construct a function to take a string with only letters and whitespace and remove common words of little contextual meaning, called stop words, then output a vector based on the average of the set of vectors that correspond to words in the string.</p>
 
 <div class="highlighter-coderay"><div class="CodeRay">
   <div class="code"><pre><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">gensim</span> <span style="color:#080;font-weight:bold">as</span> gs
+<span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">numpy</span> <span style="color:#080;font-weight:bold">as</span> np
 
 model = gs.models.Word2Vec.load_word2vec_format(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">./GoogleNews-vectors-negative300.bin</span><span style="color:#710">'</span></span>, binary=<span style="color:#069">True</span>)
 
@@ -190,6 +191,41 @@ model = gs.models.Word2Vec.load_word2vec_format(<span style="background-color:hs
 </div>
 </div>
 
+<p>We now have a nice function for vectorizing tweets, once they have been properly formatted.</p>
+
+<h2 id="cleaning-the-data">Cleaning the Data</h2>
+
+<p>Next, we’ll need to get some training data to run our feature extraction method on. Though there are several Twitter sentiment corpora on the web, many of them sacrifice sample size for accuracy of classification of the training set. Since we are dealing with the potentially very powerful, but somewhat nebulous, concept of word vectors we should choose instead to err on the side of a much larger training set, with perhaps a slight hit to classification accuracy. This can be accomplished by creating heuristics for classification rather than relying on manual techniques. The <a href="http://help.sentiment140.com/for-students/">Sentiment 140 Corpus</a> constructs its sentiment classification heuristic on tweets that contain emoticons. Of the tweets that contain emoticons, those that contain mostly positive emoticons are classified as such, and the same goes for the negative set.</p>
+
+<p>With this heuristic one can immediately automate the data classification task for the training set, which allows for a far greater sample size (in this case 1.6M tweets), at the expense of a possible drop in accuracy.</p>
+
+<p>To analyze and clean our data we’re going to work with Pandas, but first let’s take a brief look at the format of the training data.</p>
+
+<div class="highlighter-coderay"><div class="CodeRay">
+  <div class="code"><pre>$head -10 training.1600000.processed.noemoticon.csv
+
+&quot;0&quot;,&quot;1467810369&quot;,&quot;Mon Apr 06 22:19:45 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;_TheSpecialOne_&quot;,&quot;@switchfoot http://twitpic.com/2y1zl - Awww, that's a bummer.  You shoulda got David Carr of Third Day to do it. ;D&quot;
+&quot;0&quot;,&quot;1467810672&quot;,&quot;Mon Apr 06 22:19:49 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;scotthamilton&quot;,&quot;is upset that he can't update his Facebook by texting it... and might cry as a result  School today also. Blah!&quot;
+&quot;0&quot;,&quot;1467810917&quot;,&quot;Mon Apr 06 22:19:53 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;mattycus&quot;,&quot;@Kenichan I dived many times for the ball. Managed to save 50%  The rest go out of bounds&quot;
+&quot;0&quot;,&quot;1467811184&quot;,&quot;Mon Apr 06 22:19:57 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;ElleCTF&quot;,&quot;my whole body feels itchy and like its on fire &quot;
+$
+</pre></div>
+</div>
+</div>
+
+<p>From the first few lines you can see the general format of the data and should notice several things. For instance the training data file doesn’t have a header, so we’ll have to name the columns ourselves. Also, the text of the tweets has been formatted to remove emoticons, but still contains plenty of errant strings like URLs and @name tags we’ll need to remove before proceeding to vectorize them.</p>
+
+<p>First let’s import the csv file and store it as a dataframe.</p>
+
+<div class="highlighter-coderay"><div class="CodeRay">
+  <div class="code"><pre><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">pandas</span> <span style="color:#080;font-weight:bold">as</span> pd
+name_list = [<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">sentiment</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">id</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">time</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">query</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">user</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">text</span><span style="color:#710">'</span></span>]
+df = pd.read_csv(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">training.1600000.processed.noemoticon.csv</span><span style="color:#710">&quot;</span></span>,\
+                 header=<span style="color:#069">None</span>, names= name_list)
+</pre></div>
+</div>
+</div>
+
 
 
                 <hr>
@@ -202,7 +238,7 @@ model = gs.models.Word2Vec.load_word2vec_format(<span style="background-color:hs
             </div>
         </div>
     </div>
-<div id="disqus_thread" class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1"></div>
+<div id="disqus_thread" class="col-lg-9 col-lg-offset-1 col-md-10 col-md-offset-1"></div>
 <script type="text/javascript">
     /* * * CONFIGURATION VARIABLES * * */
     var disqus_shortname = 'orthogonalprojections';

@@ -67,10 +67,11 @@ As much as I'd love to speak a bit about how Word2Vec works (perhaps a future bl
 
 Given the amount of text needed to train these models, it is often advantageous to use large corpuses of words with their pre-trained vectors representations. As the original implementation of Word2Vec was invented by a Google engineer, the codebase, as well as [pre-trained vector sets](https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing) can be found on their site [here](https://code.google.com/p/word2vec/). For this example we will use their vectors that have been trained on GoogleNews stories. 
 
-Since our vectors are pre-trained we will just need to load the binary file into gensim's Word2Vec implementation. Vectors for given words are then easily accessible by using the word strings as keys on our model instance. Then we will construct a function to take a string with only letters and whitespace and remove common words of little contextual meaning, called stop words, then output a vector based on the average of the set of words in the string.
+Since our vectors are pre-trained we will just need to load the binary file into gensim's Word2Vec implementation. Vectors for given words are then easily accessible by using the word strings as keys on our model instance. Then we will construct a function to take a string with only letters and whitespace and remove common words of little contextual meaning, called stop words, then output a vector based on the average of the set of vectors that correspond to words in the string.
 
 ~~~python
 import gensim as gs
+import numpy as np
 
 model = gs.models.Word2Vec.load_word2vec_format('./GoogleNews-vectors-negative300.bin', binary=True)
 
@@ -89,6 +90,39 @@ def phrase2vec(phrase):
         size=1
     return np.divide(vec,size)
 
+~~~
+
+We now have a nice function for vectorizing tweets, once they have been properly formatted.
+
+
+##Cleaning the Data##
+
+
+Next, we'll need to get some training data to run our feature extraction method on. Though there are several Twitter sentiment corpora on the web, many of them sacrifice sample size for accuracy of classification of the training set. Since we are dealing with the potentially very powerful, but somewhat nebulous, concept of word vectors we should choose instead to err on the side of a much larger training set, with perhaps a slight hit to classification accuracy. This can be accomplished by creating heuristics for classification rather than relying on manual techniques. The [Sentiment 140 Corpus](http://help.sentiment140.com/for-students/) constructs its sentiment classification heuristic on tweets that contain emoticons. Of the tweets that contain emoticons, those that contain mostly positive emoticons are classified as such, and the same goes for the negative set. 
+
+With this heuristic one can immediately automate the data classification task for the training set, which allows for a far greater sample size (in this case 1.6M tweets), at the expense of a possible drop in accuracy. 
+
+To analyze and clean our data we're going to work with Pandas, but first let's take a brief look at the format of the training data.
+
+~~~sh
+$head -10 training.1600000.processed.noemoticon.csv
+
+"0","1467810369","Mon Apr 06 22:19:45 PDT 2009","NO_QUERY","_TheSpecialOne_","@switchfoot http://twitpic.com/2y1zl - Awww, that's a bummer.  You shoulda got David Carr of Third Day to do it. ;D"
+"0","1467810672","Mon Apr 06 22:19:49 PDT 2009","NO_QUERY","scotthamilton","is upset that he can't update his Facebook by texting it... and might cry as a result  School today also. Blah!"
+"0","1467810917","Mon Apr 06 22:19:53 PDT 2009","NO_QUERY","mattycus","@Kenichan I dived many times for the ball. Managed to save 50%  The rest go out of bounds"
+"0","1467811184","Mon Apr 06 22:19:57 PDT 2009","NO_QUERY","ElleCTF","my whole body feels itchy and like its on fire "
+$
+~~~
+
+From the first few lines you can see the general format of the data and should notice several things. For instance the training data file doesn't have a header, so we'll have to name the columns ourselves. Also, the text of the tweets has been formatted to remove emoticons, but still contains plenty of errant strings like URLs and @name tags we'll need to remove before proceeding to vectorize them. 
+
+First let's import the csv file and store it as a dataframe.
+
+~~~python
+import pandas as pd
+name_list = ['sentiment','id','time','query','user','text']
+df = pd.read_csv("training.1600000.processed.noemoticon.csv",\
+                 header=None, names= name_list)
 ~~~
 
 
