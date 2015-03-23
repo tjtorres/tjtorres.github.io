@@ -83,7 +83,7 @@
                 <div class="post-heading">
                     <h1>Inside SentiMap.us: Part 1</h1>
                     
-                    <h2 class="subheading">A How-To on Twitter Sentiment</h2>
+                    <h2 class="subheading">A Pythonic How-To on Twitter Sentiment</h2>
                     
                     <span class="meta">Posted by TJ Torres on March 23, 2015</span>
                 </div>
@@ -97,15 +97,15 @@
 <article>
     <div class="container">
         <div class="row">
-            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="col-lg-9 col-lg-offset-1 col-md-10 col-md-offset-1">
 
 				<h1 id="introduction">Introduction</h1>
 
-<p>This is the first in a series of planned future posts describing the building of my web app project <a href="http://sentimap.us">SentiMap.us</a>. The basic premise behind SentiMap is to plot localized trends in mood via realtime sentiment analysis of a geotagged Twitter stream. This post will focus mainly on the backend sentiment analysis portion of the project and take you through streaming tweets, feature extraction, and classification.</p>
+<p>This is the first in a series of planned posts describing the building of my web app project <a href="http://sentimap.us">SentiMap.us</a>. The basic premise behind SentiMap is to plot localized trends in mood via realtime sentiment analysis of a geotagged Twitter stream. This post will focus mainly on the backend sentiment analysis portion of the project and take you through streaming tweets, feature extraction, and classification.</p>
 
 <p>Without getting too far into the details just yet, the main functionality behind the sentiment classification, in this case, comes from vectorizing tweets via Word2Vec to construct tweet feature vectors and then training a random forest classifier on a <a href="http://help.sentiment140.com/for-students">pre-classified tweet corpus</a>. We will cover each of these topics in greater detail later, but for now let’s focus on the setup.</p>
 
-<p>To that end we will start off needing a few tools:</p>
+<p>The entirety of the coding for the first post will be in python, and will use the following libraries:</p>
 
 <ul>
   <li>Tweepy (Python library for dealing with the Twitter API)</li>
@@ -115,18 +115,33 @@
   <li>Scikit-Learn (providing machine learning functionality)</li>
 </ul>
 
-<p>The basic flow follows two main lines:</p>
+<div class="highlighter-coderay"><div class="CodeRay">
+  <div class="code"><pre>pip install tweepy nltk gensim pandas sklearn
+</pre></div>
+</div>
+</div>
 
-<p>####Training the Classifier####</p>
+<p>Note that in order to use NLTK’s stop word corpus you must first download it via</p>
+
+<div class="highlighter-coderay"><div class="CodeRay">
+  <div class="code"><pre>&gt;&gt;&gt;<span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">nltk</span>
+&gt;&gt;&gt;nltk.download()
+</pre></div>
+</div>
+</div>
+
+<p>With that out of the way, the basic flow follows two main lines:</p>
+
+<h4 id="training-the-classifier">Training the Classifier</h4>
 
 <ol>
   <li>Load the GoogleNews pre-trained Word2Vec vectors.</li>
   <li>Import and format/clean the Sentiment140 Twitter Corpus.</li>
   <li>Vectorize the training data tweets.</li>
-  <li>Train a classifier on the cleaned corpus data(I chose a Random Forest).</li>
+  <li>Train a classifier on the cleaned corpus data (I chose a Random Forest).</li>
 </ol>
 
-<p>####Prediciting Tweet Sentiment From Stream####</p>
+<h4 id="prediciting-tweet-sentiment-from-stream">Prediciting Tweet Sentiment From Stream</h4>
 
 <ol>
   <li>Grab JSON formatted output from the Stream endpoint of the Twitter API</li>
@@ -135,16 +150,46 @@
   <li>Predict sentiment and store data in database.</li>
 </ol>
 
-<p>Test.</p>
+<h2 id="representing-words-as-vectors">Representing Words as Vectors</h2>
 
-<pre><code class="language-python">
-def function():
-	here = []
-	for i in range(7):
-		here.append(i)
+<p>We’ll start out by training a machine learning classifier to predict tweet sentiment. The general methodology behind any classification scheme is to take a dataset and transform each data point into a vector that, we hope, represents its most salient features with respect to the task at hand. This process of feature extraction can be nearly trivial for some applications, but in general it represents a substantive obstacle with no unique solution.</p>
 
-function()
-</code></pre>
+<p>In the case of natural language processing (NLP), the process of feature extraction for use in sentiment analysis is particularly ill-defined. When we, as people, parse a sentence or phrase we can draw upon years of past experience and contextual clues from countless interactions with language to determine whether said phrase is generally positive, negative, or neutral. For instance, most people would generally decide that the sentence “He is not the brightest crayon in the box.” is reasonably negative. However, without the idiomatic context, the phrase itself might be viewed as merely neutral.</p>
+
+<p>Additionally, taking this lack of context to the extreme we might consider the same phrase where even the order of words (that is the contextual clues in the the text itself) were beyond our knowledge. Or perhaps in it’s ultimate manifestation, the ordering of letters and characters. It’s easy to see the difficulty in deciding anything, other than perhaps letter frequency, about a phrase that has been deconstructed so completely. Yet this is somewhat akin to the world that machines inhabit, having no previous knowledge of language context beyond syntactic rules for translating code documents into binary.</p>
+
+<p>Thus, while there are certainly more naive approaches to constructing vector representations of documents, the big challenge is then to construct systems which simulate the process of learning contextual knowledge. To that end, we will focus on a system of algorithms, called Word2Vec, designed to extract context clues for specific words via the analysis of massive datasets of text.</p>
+
+<p>As much as I’d love to speak a bit about how Word2Vec works (perhaps a future blog post) in gritty technical detail, for now I will point you to a <a href="http://technology.stitchfix.com/blog/2015/03/11/word-is-worth-a-thousand-vectors/">blog post written by a friend of mine</a> which is quite accessible to the lay-person, but contains a large number of technical links at the bottom for those who wish to delve further. Suffice it to say here that Word2Vec “learns” N-dimensional vector representations of words by analyzing and associating words that are less than a certain distance from them in the corpus of training text. At the end of the day we want two words to have vectors that are “close” to each other when it is probabilistically favorable for them to be near each other in a system of documents. For example, a decent metric for determining the “closeness” of vectors is the angle between them which can be easily obtained through use of the inner (or dot) product. Consequently, one might expect that “lion” and “giraffe” are often mentioned within close proximity to one another and thus the angle between their vector representations should be close to zero.</p>
+
+<p>Given the amount of text needed to train these models, it is often advantageous to use large corpuses of words with their pre-trained vectors representations. As the original implementation of Word2Vec was invented by a Google engineer, the codebase, as well as <a href="https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing">pre-trained vector sets</a> can be found on their site <a href="https://code.google.com/p/word2vec/">here</a>. For this example we will use their vectors that have been trained on GoogleNews stories.</p>
+
+<p>Since our vectors are pre-trained we will just need to load the binary file into gensim’s Word2Vec implementation. Vectors for given words are then easily accessible by using the word strings as keys on our model instance. Then we will construct a function to take a string with only letters and whitespace and remove common words of little contextual meaning, called stop words, then output a vector based on the average of the set of words in the string.</p>
+
+<div class="highlighter-coderay"><div class="CodeRay">
+  <div class="code"><pre><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">gensim</span> <span style="color:#080;font-weight:bold">as</span> gs
+
+model = gs.models.Word2Vec.load_word2vec_format(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">./GoogleNews-vectors-negative300.bin</span><span style="color:#710">'</span></span>, binary=<span style="color:#069">True</span>)
+
+<span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">phrase2vec</span>(phrase):
+    phrase = phrase.lower().split()
+    phrase_fil = [w <span style="color:#080;font-weight:bold">for</span> w <span style="color:#080;font-weight:bold">in</span> phrase <span style="color:#080;font-weight:bold">if</span> <span style="color:#080;font-weight:bold">not</span> w <span style="color:#080;font-weight:bold">in</span> stop_set]
+    size = <span style="color:#00D">0</span>
+    vec = np.zeros(<span style="color:#00D">300</span>)
+    <span style="color:#080;font-weight:bold">for</span> word <span style="color:#080;font-weight:bold">in</span> phrase_fil:
+        <span style="color:#080;font-weight:bold">try</span>:
+            vec= np.add(vec,model[word])
+            size+=<span style="color:#00D">1</span>
+        <span style="color:#080;font-weight:bold">except</span>:
+            <span style="color:#080;font-weight:bold">pass</span>
+    <span style="color:#080;font-weight:bold">if</span> size==<span style="color:#00D">0</span>:
+        size=<span style="color:#00D">1</span>
+    <span style="color:#080;font-weight:bold">return</span> np.divide(vec,size)
+
+</pre></div>
+</div>
+</div>
+
 
 
                 <hr>
