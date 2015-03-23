@@ -16,8 +16,8 @@ paginate: 5
 exclude: ["less","node_modules","Gruntfile.js","package.json","README.md"]
 
 #kramdown specs
-kramdown:
+#kramdown:
 
   #use_coderay: true
   #coderay:
-  coderay_line_numbers: nil
+  #coderay_line_numbers: nil

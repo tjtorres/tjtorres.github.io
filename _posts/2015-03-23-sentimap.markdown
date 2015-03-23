@@ -288,7 +288,6 @@ This class then takes incoming tweets and writes them to a file specified as the
 From here on in we must merely load in models and setup the stream with our credentials.
 
 ~~~python
-
 if __name__ == '__main__':
 
     ####################Variables that contain the user credentials for the Twitter API 

@@ -116,7 +116,7 @@
 </ul>
 
 <div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre>pip install tweepy nltk gensim pandas sklearn
+  <div class="code"><pre><span class="line-numbers"><a href="#n1" name="n1">1</a></span>pip install tweepy nltk gensim pandas sklearn
 </pre></div>
 </div>
 </div>
@@ -124,8 +124,8 @@
 <p>Note that in order to use NLTK’s stop word corpus you must first download it via</p>
 
 <div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre>&gt;&gt;&gt;<span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">nltk</span>
-&gt;&gt;&gt;nltk.download()
+  <div class="code"><pre><span class="line-numbers"><a href="#n1" name="n1">1</a></span>&gt;&gt;&gt;<span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">nltk</span>
+<span class="line-numbers"><a href="#n2" name="n2">2</a></span>&gt;&gt;&gt;nltk.download()
 </pre></div>
 </div>
 </div>
@@ -167,29 +167,29 @@
 <p>Since our vectors are pre-trained we will just need to load the binary file into gensim’s Word2Vec implementation. Vectors for given words are then easily accessible by using the word strings as keys on our model instance. Then we will construct a function to take a string with only letters and whitespace and remove common words of little contextual meaning, called stop words, then output a vector based on the average of the set of vectors that correspond to words in the string.</p>
 
 <div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">gensim</span> <span style="color:#080;font-weight:bold">as</span> gs
-<span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">numpy</span> <span style="color:#080;font-weight:bold">as</span> np
-<span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">nltk.corpus</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">stopwords</span>
-
-stop_set = <span style="color:#369;font-weight:bold">set</span>(stopwords.words(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">english</span><span style="color:#710">&quot;</span></span>))
-
-model = gs.models.Word2Vec.load_word2vec_format(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">./GoogleNews-vectors-negative300.bin</span><span style="color:#710">'</span></span>, binary=<span style="color:#069">True</span>)
-
-<span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">phrase2vec</span>(phrase):
-    phrase = phrase.lower().split()
-    phrase_fil = [w <span style="color:#080;font-weight:bold">for</span> w <span style="color:#080;font-weight:bold">in</span> phrase <span style="color:#080;font-weight:bold">if</span> <span style="color:#080;font-weight:bold">not</span> w <span style="color:#080;font-weight:bold">in</span> stop_set]
-    size = <span style="color:#00D">0</span>
-    vec = np.zeros(<span style="color:#00D">300</span>)
-    <span style="color:#080;font-weight:bold">for</span> word <span style="color:#080;font-weight:bold">in</span> phrase_fil:
-        <span style="color:#080;font-weight:bold">try</span>:
-            vec= np.add(vec,model[word])
-            size+=<span style="color:#00D">1</span>
-        <span style="color:#080;font-weight:bold">except</span>:
-            <span style="color:#080;font-weight:bold">pass</span>
-    <span style="color:#080;font-weight:bold">if</span> size==<span style="color:#00D">0</span>:
-        size=<span style="color:#00D">1</span>
-    <span style="color:#080;font-weight:bold">return</span> np.divide(vec,size)
-
+  <div class="code"><pre><span class="line-numbers"> <a href="#n1" name="n1">1</a></span><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">gensim</span> <span style="color:#080;font-weight:bold">as</span> gs
+<span class="line-numbers"> <a href="#n2" name="n2">2</a></span><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">numpy</span> <span style="color:#080;font-weight:bold">as</span> np
+<span class="line-numbers"> <a href="#n3" name="n3">3</a></span><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">nltk.corpus</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">stopwords</span>
+<span class="line-numbers"> <a href="#n4" name="n4">4</a></span>
+<span class="line-numbers"> <a href="#n5" name="n5">5</a></span>stop_set = <span style="color:#369;font-weight:bold">set</span>(stopwords.words(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">english</span><span style="color:#710">&quot;</span></span>))
+<span class="line-numbers"> <a href="#n6" name="n6">6</a></span>
+<span class="line-numbers"> <a href="#n7" name="n7">7</a></span>model = gs.models.Word2Vec.load_word2vec_format(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">./GoogleNews-vectors-negative300.bin</span><span style="color:#710">'</span></span>, binary=<span style="color:#069">True</span>)
+<span class="line-numbers"> <a href="#n8" name="n8">8</a></span>
+<span class="line-numbers"> <a href="#n9" name="n9">9</a></span><span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">phrase2vec</span>(phrase):
+<span class="line-numbers"><strong><a href="#n10" name="n10">10</a></strong></span>    phrase = phrase.lower().split()
+<span class="line-numbers"><a href="#n11" name="n11">11</a></span>    phrase_fil = [w <span style="color:#080;font-weight:bold">for</span> w <span style="color:#080;font-weight:bold">in</span> phrase <span style="color:#080;font-weight:bold">if</span> <span style="color:#080;font-weight:bold">not</span> w <span style="color:#080;font-weight:bold">in</span> stop_set]
+<span class="line-numbers"><a href="#n12" name="n12">12</a></span>    size = <span style="color:#00D">0</span>
+<span class="line-numbers"><a href="#n13" name="n13">13</a></span>    vec = np.zeros(<span style="color:#00D">300</span>)
+<span class="line-numbers"><a href="#n14" name="n14">14</a></span>    <span style="color:#080;font-weight:bold">for</span> word <span style="color:#080;font-weight:bold">in</span> phrase_fil:
+<span class="line-numbers"><a href="#n15" name="n15">15</a></span>        <span style="color:#080;font-weight:bold">try</span>:
+<span class="line-numbers"><a href="#n16" name="n16">16</a></span>            vec= np.add(vec,model[word])
+<span class="line-numbers"><a href="#n17" name="n17">17</a></span>            size+=<span style="color:#00D">1</span>
+<span class="line-numbers"><a href="#n18" name="n18">18</a></span>        <span style="color:#080;font-weight:bold">except</span>:
+<span class="line-numbers"><a href="#n19" name="n19">19</a></span>            <span style="color:#080;font-weight:bold">pass</span>
+<span class="line-numbers"><strong><a href="#n20" name="n20">20</a></strong></span>    <span style="color:#080;font-weight:bold">if</span> size==<span style="color:#00D">0</span>:
+<span class="line-numbers"><a href="#n21" name="n21">21</a></span>        size=<span style="color:#00D">1</span>
+<span class="line-numbers"><a href="#n22" name="n22">22</a></span>    <span style="color:#080;font-weight:bold">return</span> np.divide(vec,size)
+<span class="line-numbers"><a href="#n23" name="n23">23</a></span>
 </pre></div>
 </div>
 </div>
@@ -205,13 +205,13 @@ model = gs.models.Word2Vec.load_word2vec_format(<span style="background-color:hs
 <p>To analyze and clean our data we’re going to work with Pandas, but first let’s take a brief look at the format of the training data.</p>
 
 <div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre>$head -10 training.1600000.processed.noemoticon.csv
-
-&quot;0&quot;,&quot;1467810369&quot;,&quot;Mon Apr 06 22:19:45 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;_TheSpecialOne_&quot;,&quot;@switchfoot http://twitpic.com/2y1zl - Awww, that's a bummer.  You shoulda got David Carr of Third Day to do it. ;D&quot;
-&quot;0&quot;,&quot;1467810672&quot;,&quot;Mon Apr 06 22:19:49 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;scotthamilton&quot;,&quot;is upset that he can't update his Facebook by texting it... and might cry as a result  School today also. Blah!&quot;
-&quot;0&quot;,&quot;1467810917&quot;,&quot;Mon Apr 06 22:19:53 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;mattycus&quot;,&quot;@Kenichan I dived many times for the ball. Managed to save 50%  The rest go out of bounds&quot;
-&quot;0&quot;,&quot;1467811184&quot;,&quot;Mon Apr 06 22:19:57 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;ElleCTF&quot;,&quot;my whole body feels itchy and like its on fire &quot;
-$
+  <div class="code"><pre><span class="line-numbers"><a href="#n1" name="n1">1</a></span>$head -10 training.1600000.processed.noemoticon.csv
+<span class="line-numbers"><a href="#n2" name="n2">2</a></span>
+<span class="line-numbers"><a href="#n3" name="n3">3</a></span>&quot;0&quot;,&quot;1467810369&quot;,&quot;Mon Apr 06 22:19:45 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;_TheSpecialOne_&quot;,&quot;@switchfoot http://twitpic.com/2y1zl - Awww, that's a bummer.  You shoulda got David Carr of Third Day to do it. ;D&quot;
+<span class="line-numbers"><a href="#n4" name="n4">4</a></span>&quot;0&quot;,&quot;1467810672&quot;,&quot;Mon Apr 06 22:19:49 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;scotthamilton&quot;,&quot;is upset that he can't update his Facebook by texting it... and might cry as a result  School today also. Blah!&quot;
+<span class="line-numbers"><a href="#n5" name="n5">5</a></span>&quot;0&quot;,&quot;1467810917&quot;,&quot;Mon Apr 06 22:19:53 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;mattycus&quot;,&quot;@Kenichan I dived many times for the ball. Managed to save 50%  The rest go out of bounds&quot;
+<span class="line-numbers"><a href="#n6" name="n6">6</a></span>&quot;0&quot;,&quot;1467811184&quot;,&quot;Mon Apr 06 22:19:57 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;ElleCTF&quot;,&quot;my whole body feels itchy and like its on fire &quot;
+<span class="line-numbers"><a href="#n7" name="n7">7</a></span>$
 </pre></div>
 </div>
 </div>
@@ -221,10 +221,10 @@ $
 <p>First let’s import the csv file and store it as a dataframe.</p>
 
 <div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">pandas</span> <span style="color:#080;font-weight:bold">as</span> pd
-name_list = [<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">sentiment</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">id</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">time</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">query</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">user</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">text</span><span style="color:#710">'</span></span>]
-df = pd.read_csv(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">training.1600000.processed.noemoticon.csv</span><span style="color:#710">&quot;</span></span>,\
-                 header=<span style="color:#069">None</span>, names= name_list)
+  <div class="code"><pre><span class="line-numbers"><a href="#n1" name="n1">1</a></span><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">pandas</span> <span style="color:#080;font-weight:bold">as</span> pd
+<span class="line-numbers"><a href="#n2" name="n2">2</a></span>name_list = [<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">sentiment</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">id</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">time</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">query</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">user</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">text</span><span style="color:#710">'</span></span>]
+<span class="line-numbers"><a href="#n3" name="n3">3</a></span>df = pd.read_csv(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">training.1600000.processed.noemoticon.csv</span><span style="color:#710">&quot;</span></span>,\
+<span class="line-numbers"><a href="#n4" name="n4">4</a></span>                 header=<span style="color:#069">None</span>, names= name_list)
 </pre></div>
 </div>
 </div>
@@ -232,45 +232,45 @@ df = pd.read_csv(<span style="background-color:hsla(0,100%,50%,0.05)"><span styl
 <p>Now we’ll create a function that takes a string and strips it down to only the text content we care about, removing URLs, names, emoji character sets, and “#” part of the hashtags. We can also optimize our data to be more uniform by taking repeated instances of letters, as in the string “loooooooooove”, and transforming them down to 2 at most. This is best accomplished using python’s regular expressions module. I’ll construct the function here, keeping things a bit more long form for the sake of readability.</p>
 
 <div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">re</span>
-
-<span style="color:#777">#compile regular expressions that match repeated characters and emoji unicode</span>
-emoji = re.compile(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">u</span><span style="color:#710">'</span><span style="color:#D20">[^</span><span style="color:#b0b">\x00</span><span style="color:#D20">-</span><span style="color:#b0b">\x7F</span><span style="color:#b0b">\x80</span><span style="color:#D20">-</span><span style="color:#b0b">\xFF</span><span style="color:#b0b">\u0100</span><span style="color:#D20">-</span><span style="color:#b0b">\u017F</span><span style="color:#b0b">\u0180</span><span style="color:#D20">-</span><span style="color:#b0b">\u024F</span><span style="color:#b0b">\u1E00</span><span style="color:#D20">-</span><span style="color:#b0b">\u1EFF</span><span style="color:#D20">]</span><span style="color:#710">'</span></span>,re.UNICODE)
-multiple = re.compile(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">&quot;</span><span style="color:#D20">(.)</span><span style="color:#D20">\1</span><span style="color:#D20">{1,}</span><span style="color:#710">&quot;</span></span>, re.DOTALL)
-
-<span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">format</span>(tweet):
-
-    <span style="color:#777">#strip emoji</span>
-    stripped = emoji.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#710">'</span></span>,elem[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">text</span><span style="color:#710">'</span></span>])
-    
-    <span style="color:#777">#strip URLs</span>
-    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">'</span><span style="color:#D20">http[s]?[^</span><span style="color:#D20">\s</span><span style="color:#D20">]+</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#710">'</span></span>, stripped)
-    
-    <span style="color:#777">#strip &quot;@name&quot; components</span>
-    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">'</span><span style="color:#D20">(@[A-Za-z0-9</span><span style="color:#D20">\_</span><span style="color:#D20">]+)</span><span style="color:#710">'</span></span> , <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#710">&quot;</span></span> ,stripped)
-    
-    <span style="color:#777">#strip html '&amp;amp;', '&amp;lt;', etc.  </span>
-    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">'</span><span style="color:#D20">[</span><span style="color:#D20">\&amp;</span><span style="color:#D20">].*;</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#710">'</span></span>,stripped)
-    
-    <span style="color:#777">#strip punctuation</span>
-    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">'</span><span style="color:#D20">[#|</span><span style="color:#D20">\!</span><span style="color:#D20">|</span><span style="color:#D20">\-</span><span style="color:#D20">|</span><span style="color:#D20">\+</span><span style="color:#D20">|:|//]</span><span style="color:#710">'</span></span>, <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20"> </span><span style="color:#710">&quot;</span></span>, stripped)
-    
-    <span style="color:#777">#strip the common &quot;RT&quot;</span>
-    stripped = re.sub( <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">RT.</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#710">'</span></span>, stripped)
-    
-    <span style="color:#777">#strip whitespace down to one.</span>
-    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">[</span><span style="color:#D20">\s</span><span style="color:#D20">]+</span><span style="color:#710">'</span></span> ,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20"> </span><span style="color:#710">'</span></span>, stripped).strip()
-    
-    <span style="color:#777">#strip multiple occurrences of letters</span>
-    stripped = multiple.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">&quot;</span><span style="color:#D20">\1</span><span style="color:#D20">\1</span><span style="color:#710">&quot;</span></span>, stripped)
-    
-    <span style="color:#777">#strip all non-latin characters</span>
-    <span style="color:#777">#if we wish to deal with foreign language tweets, we would need to first </span>
-    <span style="color:#777">#translate them before taking this step.</span>
-    
-    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">[^a-zA-Z0-9|</span><span style="color:#b0b">\'</span><span style="color:#D20">]</span><span style="color:#710">'</span></span>, <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20"> </span><span style="color:#710">&quot;</span></span>, stripped).strip()
-    
-    <span style="color:#080;font-weight:bold">return</span> stripped
+  <div class="code"><pre><span class="line-numbers"> <a href="#n1" name="n1">1</a></span><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">re</span>
+<span class="line-numbers"> <a href="#n2" name="n2">2</a></span>
+<span class="line-numbers"> <a href="#n3" name="n3">3</a></span><span style="color:#777">#compile regular expressions that match repeated characters and emoji unicode</span>
+<span class="line-numbers"> <a href="#n4" name="n4">4</a></span>emoji = re.compile(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">u</span><span style="color:#710">'</span><span style="color:#D20">[^</span><span style="color:#b0b">\x00</span><span style="color:#D20">-</span><span style="color:#b0b">\x7F</span><span style="color:#b0b">\x80</span><span style="color:#D20">-</span><span style="color:#b0b">\xFF</span><span style="color:#b0b">\u0100</span><span style="color:#D20">-</span><span style="color:#b0b">\u017F</span><span style="color:#b0b">\u0180</span><span style="color:#D20">-</span><span style="color:#b0b">\u024F</span><span style="color:#b0b">\u1E00</span><span style="color:#D20">-</span><span style="color:#b0b">\u1EFF</span><span style="color:#D20">]</span><span style="color:#710">'</span></span>,re.UNICODE)
+<span class="line-numbers"> <a href="#n5" name="n5">5</a></span>multiple = re.compile(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">&quot;</span><span style="color:#D20">(.)</span><span style="color:#D20">\1</span><span style="color:#D20">{1,}</span><span style="color:#710">&quot;</span></span>, re.DOTALL)
+<span class="line-numbers"> <a href="#n6" name="n6">6</a></span>
+<span class="line-numbers"> <a href="#n7" name="n7">7</a></span><span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">format</span>(tweet):
+<span class="line-numbers"> <a href="#n8" name="n8">8</a></span>
+<span class="line-numbers"> <a href="#n9" name="n9">9</a></span>    <span style="color:#777">#strip emoji</span>
+<span class="line-numbers"><strong><a href="#n10" name="n10">10</a></strong></span>    stripped = emoji.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#710">'</span></span>,elem[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">text</span><span style="color:#710">'</span></span>])
+<span class="line-numbers"><a href="#n11" name="n11">11</a></span>    
+<span class="line-numbers"><a href="#n12" name="n12">12</a></span>    <span style="color:#777">#strip URLs</span>
+<span class="line-numbers"><a href="#n13" name="n13">13</a></span>    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">'</span><span style="color:#D20">http[s]?[^</span><span style="color:#D20">\s</span><span style="color:#D20">]+</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#710">'</span></span>, stripped)
+<span class="line-numbers"><a href="#n14" name="n14">14</a></span>    
+<span class="line-numbers"><a href="#n15" name="n15">15</a></span>    <span style="color:#777">#strip &quot;@name&quot; components</span>
+<span class="line-numbers"><a href="#n16" name="n16">16</a></span>    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">'</span><span style="color:#D20">(@[A-Za-z0-9</span><span style="color:#D20">\_</span><span style="color:#D20">]+)</span><span style="color:#710">'</span></span> , <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#710">&quot;</span></span> ,stripped)
+<span class="line-numbers"><a href="#n17" name="n17">17</a></span>    
+<span class="line-numbers"><a href="#n18" name="n18">18</a></span>    <span style="color:#777">#strip html '&amp;amp;', '&amp;lt;', etc.  </span>
+<span class="line-numbers"><a href="#n19" name="n19">19</a></span>    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">'</span><span style="color:#D20">[</span><span style="color:#D20">\&amp;</span><span style="color:#D20">].*;</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#710">'</span></span>,stripped)
+<span class="line-numbers"><strong><a href="#n20" name="n20">20</a></strong></span>    
+<span class="line-numbers"><a href="#n21" name="n21">21</a></span>    <span style="color:#777">#strip punctuation</span>
+<span class="line-numbers"><a href="#n22" name="n22">22</a></span>    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">'</span><span style="color:#D20">[#|</span><span style="color:#D20">\!</span><span style="color:#D20">|</span><span style="color:#D20">\-</span><span style="color:#D20">|</span><span style="color:#D20">\+</span><span style="color:#D20">|:|//]</span><span style="color:#710">'</span></span>, <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20"> </span><span style="color:#710">&quot;</span></span>, stripped)
+<span class="line-numbers"><a href="#n23" name="n23">23</a></span>    
+<span class="line-numbers"><a href="#n24" name="n24">24</a></span>    <span style="color:#777">#strip the common &quot;RT&quot;</span>
+<span class="line-numbers"><a href="#n25" name="n25">25</a></span>    stripped = re.sub( <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">RT.</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#710">'</span></span>, stripped)
+<span class="line-numbers"><a href="#n26" name="n26">26</a></span>    
+<span class="line-numbers"><a href="#n27" name="n27">27</a></span>    <span style="color:#777">#strip whitespace down to one.</span>
+<span class="line-numbers"><a href="#n28" name="n28">28</a></span>    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">[</span><span style="color:#D20">\s</span><span style="color:#D20">]+</span><span style="color:#710">'</span></span> ,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20"> </span><span style="color:#710">'</span></span>, stripped).strip()
+<span class="line-numbers"><a href="#n29" name="n29">29</a></span>    
+<span class="line-numbers"><strong><a href="#n30" name="n30">30</a></strong></span>    <span style="color:#777">#strip multiple occurrences of letters</span>
+<span class="line-numbers"><a href="#n31" name="n31">31</a></span>    stripped = multiple.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">&quot;</span><span style="color:#D20">\1</span><span style="color:#D20">\1</span><span style="color:#710">&quot;</span></span>, stripped)
+<span class="line-numbers"><a href="#n32" name="n32">32</a></span>    
+<span class="line-numbers"><a href="#n33" name="n33">33</a></span>    <span style="color:#777">#strip all non-latin characters</span>
+<span class="line-numbers"><a href="#n34" name="n34">34</a></span>    <span style="color:#777">#if we wish to deal with foreign language tweets, we would need to first </span>
+<span class="line-numbers"><a href="#n35" name="n35">35</a></span>    <span style="color:#777">#translate them before taking this step.</span>
+<span class="line-numbers"><a href="#n36" name="n36">36</a></span>    
+<span class="line-numbers"><a href="#n37" name="n37">37</a></span>    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">[^a-zA-Z0-9|</span><span style="color:#b0b">\'</span><span style="color:#D20">]</span><span style="color:#710">'</span></span>, <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20"> </span><span style="color:#710">&quot;</span></span>, stripped).strip()
+<span class="line-numbers"><a href="#n38" name="n38">38</a></span>    
+<span class="line-numbers"><a href="#n39" name="n39">39</a></span>    <span style="color:#080;font-weight:bold">return</span> stripped
 </pre></div>
 </div>
 </div>
@@ -282,18 +282,18 @@ multiple = re.compile(<span style="background-color:hsla(0,100%,50%,0.05)"><span
 <p>Now we’re ready to train our classifier. Let’s start off by making an array of feature vectors for our training data, as well as an array of target values for the sentiment.</p>
 
 <div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span style="color:#777">#initialize a numpy array to the proper shape and a counter. </span>
-training_data = np.zeros((df.shape[<span style="color:#00D">0</span>],<span style="color:#00D">300</span>))
-counter = <span style="color:#00D">0</span>
-<span style="color:#777">#add vectorized tweet text to numpy array.</span>
-<span style="color:#080;font-weight:bold">for</span> tweet <span style="color:#080;font-weight:bold">in</span> df[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">text</span><span style="color:#710">'</span></span>].values:
-
-        filtered = format(tweet)
-        vectorized = phrase2vec(filtered)
-        training_data[counter] = vectorized
-        counter+=<span style="color:#00D">1</span>
-        
-training_target = df[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">sentiment</span><span style="color:#710">'</span></span>].values
+  <div class="code"><pre><span class="line-numbers"> <a href="#n1" name="n1">1</a></span><span style="color:#777">#initialize a numpy array to the proper shape and a counter. </span>
+<span class="line-numbers"> <a href="#n2" name="n2">2</a></span>training_data = np.zeros((df.shape[<span style="color:#00D">0</span>],<span style="color:#00D">300</span>))
+<span class="line-numbers"> <a href="#n3" name="n3">3</a></span>counter = <span style="color:#00D">0</span>
+<span class="line-numbers"> <a href="#n4" name="n4">4</a></span><span style="color:#777">#add vectorized tweet text to numpy array.</span>
+<span class="line-numbers"> <a href="#n5" name="n5">5</a></span><span style="color:#080;font-weight:bold">for</span> tweet <span style="color:#080;font-weight:bold">in</span> df[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">text</span><span style="color:#710">'</span></span>].values:
+<span class="line-numbers"> <a href="#n6" name="n6">6</a></span>
+<span class="line-numbers"> <a href="#n7" name="n7">7</a></span>        filtered = format(tweet)
+<span class="line-numbers"> <a href="#n8" name="n8">8</a></span>        vectorized = phrase2vec(filtered)
+<span class="line-numbers"> <a href="#n9" name="n9">9</a></span>        training_data[counter] = vectorized
+<span class="line-numbers"><strong><a href="#n10" name="n10">10</a></strong></span>        counter+=<span style="color:#00D">1</span>
+<span class="line-numbers"><a href="#n11" name="n11">11</a></span>        
+<span class="line-numbers"><a href="#n12" name="n12">12</a></span>training_target = df[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">sentiment</span><span style="color:#710">'</span></span>].values
 </pre></div>
 </div>
 </div>
@@ -301,15 +301,15 @@ training_target = df[<span style="background-color:hsla(0,100%,50%,0.05)"><span 
 <p>Now we simply pick which ML algorithm we wish to train. In this case I will be using a random forest classifier. Once we train our model we can then easily export the results using scikit-learn’s joblib function, which operates on Python’s Pickle package (say that 5 times fast) to dump our Python classifier model to a file.</p>
 
 <div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">sklearn.ensemble</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">RandomForestClassifier</span>
-<span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">sklearn.externals</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">joblib</span>
-
-cl = RandomForestClassifier()
-
-cl.fit(training_data, training_target)
-
-joblib.dump(cl,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">Pickle/rfc.pkl</span><span style="color:#710">'</span></span>)
-
+  <div class="code"><pre><span class="line-numbers"> <a href="#n1" name="n1">1</a></span><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">sklearn.ensemble</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">RandomForestClassifier</span>
+<span class="line-numbers"> <a href="#n2" name="n2">2</a></span><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">sklearn.externals</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">joblib</span>
+<span class="line-numbers"> <a href="#n3" name="n3">3</a></span>
+<span class="line-numbers"> <a href="#n4" name="n4">4</a></span>cl = RandomForestClassifier()
+<span class="line-numbers"> <a href="#n5" name="n5">5</a></span>
+<span class="line-numbers"> <a href="#n6" name="n6">6</a></span>cl.fit(training_data, training_target)
+<span class="line-numbers"> <a href="#n7" name="n7">7</a></span>
+<span class="line-numbers"> <a href="#n8" name="n8">8</a></span>joblib.dump(cl,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">Pickle/rfc.pkl</span><span style="color:#710">'</span></span>)
+<span class="line-numbers"> <a href="#n9" name="n9">9</a></span>
 </pre></div>
 </div>
 </div>
@@ -323,70 +323,70 @@ joblib.dump(cl,<span style="background-color:hsla(0,100%,50%,0.05)"><span style=
 <p>Once you’ve got your credentials and installed the Tweepy we can proceed to setting up a streaming client. In this example I’ll set one up that outputs the sentiment-valued stream to file. First we need to construct a <code>Listener</code> class that inherits from<code>tweepy.streaming.StreamListener</code>. We’ll also be handling JSON, so we need to import Python’s JSON module as well. We will use the on_data method to perform a task every time we receive a tweet.</p>
 
 <div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">tweepy.streaming</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">StreamListener</span>
-<span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">tweepy</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">OAuthHandler</span>
-<span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">tweepy</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">Stream</span>
-<span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">json</span>
-<span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">datetime</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">datetime</span>
-<span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">time</span>
-
-
-
-
-<span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">get_sentiment</span>(text, stop , model, trained_classifier):
-    cl = trained_classifier
-    vec = phrase2vec(text,stop,model)
-    pred = cl.predict_proba(vec)[<span style="color:#00D">0</span>][<span style="color:#00D">1</span>]
-    <span style="color:#080;font-weight:bold">return</span> pred
-        
-
-<span style="color:#080;font-weight:bold">class</span> <span style="color:#B06;font-weight:bold">Listener</span>(StreamListener):
-    
-    <span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">__init__</span>(<span style="color:#069">self</span>, classifier, stops, model,start):
-        <span style="color:#069">self</span>.cl = classifier
-        <span style="color:#069">self</span>.stop = stops
-        <span style="color:#069">self</span>.model = model
-                <span style="color:#069">self</span>.start = start
-    
-        
-    
-    <span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">on_data</span>(<span style="color:#069">self</span>, data):
-        <span style="color:#777">#parse json from data event</span>
-        elem = json.loads(data)
-                
-        <span style="color:#080;font-weight:bold">with</span> <span style="color:#369;font-weight:bold">open</span>(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">./Data/{0}</span><span style="color:#710">&quot;</span></span>.format(sys.argv[<span style="color:#00D">1</span>]),<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">a</span><span style="color:#710">'</span></span>) <span style="color:#080;font-weight:bold">as</span> f:
-            writer = csv.writer(f,codecs.getwriter(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">utf-8</span><span style="color:#710">'</span></span>)(sys.stdout))
-            tweet = elem[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">text</span><span style="color:#710">'</span></span>]
-            <span style="color:#080;font-weight:bold">if</span> elem[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">lang</span><span style="color:#710">'</span></span>] ==  <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">en</span><span style="color:#710">'</span></span> <span style="color:#080;font-weight:bold">or</span> elem[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">lang</span><span style="color:#710">'</span></span>] ==  <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">en-gb</span><span style="color:#710">'</span></span>:
-                filtered = format(tweet)
-        
-        
-                <span style="color:#080;font-weight:bold">if</span> <span style="color:#369;font-weight:bold">len</span>(filtered.split()) &gt; <span style="color:#00D">2</span>:
-                    sentiment = get_sentiment(filtered, <span style="color:#069">self</span>.stop, <span style="color:#069">self</span>.model, <span style="color:#069">self</span>.cl)
-                    
-                    writer.writerow( [tweet,
-                                      filtered,
-                                      sentiment,
-                                      datetime.utcnow()])
-        
-    
-                            
-                    
-                    
-        t1 = time.time()
-        t0 = <span style="color:#069">self</span>.start
-        <span style="color:#080;font-weight:bold">if</span> t1-t0 &lt;= <span style="color:#369;font-weight:bold">float</span>(sys.argv[<span style="color:#00D">2</span>])*<span style="color:#60E">3600.</span>:
-            sys.stdout.write(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#b0b">\r</span><span style="color:#D20">{0}</span><span style="color:#710">&quot;</span></span>.format(t1-t0))
-            sys.stdout.flush()
-            <span style="color:#080;font-weight:bold">return</span> <span style="color:#069">True</span>
-        <span style="color:#080;font-weight:bold">else</span>:
-            <span style="color:#080;font-weight:bold">print</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#b0b">\n</span><span style="color:#D20">Time's Up!</span><span style="color:#710">&quot;</span></span>
-            <span style="color:#080;font-weight:bold">return</span> <span style="color:#069">False</span>
-            
-            
-            
-    <span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">on_error</span>(<span style="color:#069">self</span>, status):
-        <span style="color:#080;font-weight:bold">print</span> status
+  <div class="code"><pre><span class="line-numbers"> <a href="#n1" name="n1">1</a></span><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">tweepy.streaming</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">StreamListener</span>
+<span class="line-numbers"> <a href="#n2" name="n2">2</a></span><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">tweepy</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">OAuthHandler</span>
+<span class="line-numbers"> <a href="#n3" name="n3">3</a></span><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">tweepy</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">Stream</span>
+<span class="line-numbers"> <a href="#n4" name="n4">4</a></span><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">json</span>
+<span class="line-numbers"> <a href="#n5" name="n5">5</a></span><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">datetime</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">datetime</span>
+<span class="line-numbers"> <a href="#n6" name="n6">6</a></span><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">time</span>
+<span class="line-numbers"> <a href="#n7" name="n7">7</a></span>
+<span class="line-numbers"> <a href="#n8" name="n8">8</a></span>
+<span class="line-numbers"> <a href="#n9" name="n9">9</a></span>
+<span class="line-numbers"><strong><a href="#n10" name="n10">10</a></strong></span>
+<span class="line-numbers"><a href="#n11" name="n11">11</a></span><span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">get_sentiment</span>(text, stop , model, trained_classifier):
+<span class="line-numbers"><a href="#n12" name="n12">12</a></span>    cl = trained_classifier
+<span class="line-numbers"><a href="#n13" name="n13">13</a></span>    vec = phrase2vec(text,stop,model)
+<span class="line-numbers"><a href="#n14" name="n14">14</a></span>    pred = cl.predict_proba(vec)[<span style="color:#00D">0</span>][<span style="color:#00D">1</span>]
+<span class="line-numbers"><a href="#n15" name="n15">15</a></span>    <span style="color:#080;font-weight:bold">return</span> pred
+<span class="line-numbers"><a href="#n16" name="n16">16</a></span>        
+<span class="line-numbers"><a href="#n17" name="n17">17</a></span>
+<span class="line-numbers"><a href="#n18" name="n18">18</a></span><span style="color:#080;font-weight:bold">class</span> <span style="color:#B06;font-weight:bold">Listener</span>(StreamListener):
+<span class="line-numbers"><a href="#n19" name="n19">19</a></span>    
+<span class="line-numbers"><strong><a href="#n20" name="n20">20</a></strong></span>    <span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">__init__</span>(<span style="color:#069">self</span>, classifier, stops, model,start):
+<span class="line-numbers"><a href="#n21" name="n21">21</a></span>        <span style="color:#069">self</span>.cl = classifier
+<span class="line-numbers"><a href="#n22" name="n22">22</a></span>        <span style="color:#069">self</span>.stop = stops
+<span class="line-numbers"><a href="#n23" name="n23">23</a></span>        <span style="color:#069">self</span>.model = model
+<span class="line-numbers"><a href="#n24" name="n24">24</a></span>                <span style="color:#069">self</span>.start = start
+<span class="line-numbers"><a href="#n25" name="n25">25</a></span>    
+<span class="line-numbers"><a href="#n26" name="n26">26</a></span>        
+<span class="line-numbers"><a href="#n27" name="n27">27</a></span>    
+<span class="line-numbers"><a href="#n28" name="n28">28</a></span>    <span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">on_data</span>(<span style="color:#069">self</span>, data):
+<span class="line-numbers"><a href="#n29" name="n29">29</a></span>        <span style="color:#777">#parse json from data event</span>
+<span class="line-numbers"><strong><a href="#n30" name="n30">30</a></strong></span>        elem = json.loads(data)
+<span class="line-numbers"><a href="#n31" name="n31">31</a></span>                
+<span class="line-numbers"><a href="#n32" name="n32">32</a></span>        <span style="color:#080;font-weight:bold">with</span> <span style="color:#369;font-weight:bold">open</span>(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">./Data/{0}</span><span style="color:#710">&quot;</span></span>.format(sys.argv[<span style="color:#00D">1</span>]),<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">a</span><span style="color:#710">'</span></span>) <span style="color:#080;font-weight:bold">as</span> f:
+<span class="line-numbers"><a href="#n33" name="n33">33</a></span>            writer = csv.writer(f,codecs.getwriter(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">utf-8</span><span style="color:#710">'</span></span>)(sys.stdout))
+<span class="line-numbers"><a href="#n34" name="n34">34</a></span>            tweet = elem[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">text</span><span style="color:#710">'</span></span>]
+<span class="line-numbers"><a href="#n35" name="n35">35</a></span>            <span style="color:#080;font-weight:bold">if</span> elem[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">lang</span><span style="color:#710">'</span></span>] ==  <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">en</span><span style="color:#710">'</span></span> <span style="color:#080;font-weight:bold">or</span> elem[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">lang</span><span style="color:#710">'</span></span>] ==  <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">en-gb</span><span style="color:#710">'</span></span>:
+<span class="line-numbers"><a href="#n36" name="n36">36</a></span>                filtered = format(tweet)
+<span class="line-numbers"><a href="#n37" name="n37">37</a></span>        
+<span class="line-numbers"><a href="#n38" name="n38">38</a></span>        
+<span class="line-numbers"><a href="#n39" name="n39">39</a></span>                <span style="color:#080;font-weight:bold">if</span> <span style="color:#369;font-weight:bold">len</span>(filtered.split()) &gt; <span style="color:#00D">2</span>:
+<span class="line-numbers"><strong><a href="#n40" name="n40">40</a></strong></span>                    sentiment = get_sentiment(filtered, <span style="color:#069">self</span>.stop, <span style="color:#069">self</span>.model, <span style="color:#069">self</span>.cl)
+<span class="line-numbers"><a href="#n41" name="n41">41</a></span>                    
+<span class="line-numbers"><a href="#n42" name="n42">42</a></span>                    writer.writerow( [tweet,
+<span class="line-numbers"><a href="#n43" name="n43">43</a></span>                                      filtered,
+<span class="line-numbers"><a href="#n44" name="n44">44</a></span>                                      sentiment,
+<span class="line-numbers"><a href="#n45" name="n45">45</a></span>                                      datetime.utcnow()])
+<span class="line-numbers"><a href="#n46" name="n46">46</a></span>        
+<span class="line-numbers"><a href="#n47" name="n47">47</a></span>    
+<span class="line-numbers"><a href="#n48" name="n48">48</a></span>                            
+<span class="line-numbers"><a href="#n49" name="n49">49</a></span>                    
+<span class="line-numbers"><strong><a href="#n50" name="n50">50</a></strong></span>                    
+<span class="line-numbers"><a href="#n51" name="n51">51</a></span>        t1 = time.time()
+<span class="line-numbers"><a href="#n52" name="n52">52</a></span>        t0 = <span style="color:#069">self</span>.start
+<span class="line-numbers"><a href="#n53" name="n53">53</a></span>        <span style="color:#080;font-weight:bold">if</span> t1-t0 &lt;= <span style="color:#369;font-weight:bold">float</span>(sys.argv[<span style="color:#00D">2</span>])*<span style="color:#60E">3600.</span>:
+<span class="line-numbers"><a href="#n54" name="n54">54</a></span>            sys.stdout.write(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#b0b">\r</span><span style="color:#D20">{0}</span><span style="color:#710">&quot;</span></span>.format(t1-t0))
+<span class="line-numbers"><a href="#n55" name="n55">55</a></span>            sys.stdout.flush()
+<span class="line-numbers"><a href="#n56" name="n56">56</a></span>            <span style="color:#080;font-weight:bold">return</span> <span style="color:#069">True</span>
+<span class="line-numbers"><a href="#n57" name="n57">57</a></span>        <span style="color:#080;font-weight:bold">else</span>:
+<span class="line-numbers"><a href="#n58" name="n58">58</a></span>            <span style="color:#080;font-weight:bold">print</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#b0b">\n</span><span style="color:#D20">Time's Up!</span><span style="color:#710">&quot;</span></span>
+<span class="line-numbers"><a href="#n59" name="n59">59</a></span>            <span style="color:#080;font-weight:bold">return</span> <span style="color:#069">False</span>
+<span class="line-numbers"><strong><a href="#n60" name="n60">60</a></strong></span>            
+<span class="line-numbers"><a href="#n61" name="n61">61</a></span>            
+<span class="line-numbers"><a href="#n62" name="n62">62</a></span>            
+<span class="line-numbers"><a href="#n63" name="n63">63</a></span>    <span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">on_error</span>(<span style="color:#069">self</span>, status):
+<span class="line-numbers"><a href="#n64" name="n64">64</a></span>        <span style="color:#080;font-weight:bold">print</span> status
 </pre></div>
 </div>
 </div>
@@ -396,55 +396,54 @@ joblib.dump(cl,<span style="background-color:hsla(0,100%,50%,0.05)"><span style=
 <p>From here on in we must merely load in models and setup the stream with our credentials.</p>
 
 <div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre>
-<span style="color:#080;font-weight:bold">if</span> __name__ == <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">__main__</span><span style="color:#710">'</span></span>:
-
-    <span style="color:#777">####################Variables that contain the user credentials for the Twitter API </span>
-    access_token = <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">ACCESS_TOKEN</span><span style="color:#710">&quot;</span></span>
-    access_token_secret = <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">ACCESS_TOKEN_SECRET</span><span style="color:#710">&quot;</span></span>
-    consumer_key = <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">CONSUMER_KEY</span><span style="color:#710">&quot;</span></span>
-    consumer_secret = <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">CONSUMER_SECRET</span><span style="color:#710">&quot;</span></span>
-    <span style="color:#777">#########################################################</span>
-    
-    <span style="color:#777">#Write file header</span>
-    f=<span style="color:#369;font-weight:bold">open</span>(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">./Data/{0}</span><span style="color:#710">&quot;</span></span>.format(sys.argv[<span style="color:#00D">1</span>]),<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">w</span><span style="color:#710">'</span></span>)
-    f.write(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">original_text,filtered_output,sentiment,time </span><span style="color:#b0b">\n</span><span style="color:#710">&quot;</span></span>)
-    f.close()
-    
-    
-    <span style="color:#080;font-weight:bold">print</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Loading Classifier...</span><span style="color:#b0b">\n</span><span style="color:#b0b">\n</span><span style="color:#710">&quot;</span></span>
-    
-    <span style="color:#777">#load trained sklearn classifier</span>
-    cl=joblib.load(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">Pickle/rfc.pkl</span><span style="color:#710">'</span></span>)
-    
-    <span style="color:#080;font-weight:bold">print</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Classifier Loaded...loading model...</span><span style="color:#b0b">\n</span><span style="color:#b0b">\n</span><span style="color:#710">&quot;</span></span>
-    
-    <span style="color:#777">#load w2v vectors from GoogleNews training set. </span>
-    model= gs.models.Word2Vec.load_word2vec_format(
-           <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">./static/Data/GoogleNews-vectors-negative300.bin</span><span style="color:#710">'</span></span>,binary=<span style="color:#069">True</span>)
-    
-    
-    <span style="color:#080;font-weight:bold">print</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Model Loaded...</span><span style="color:#b0b">\n</span><span style="color:#b0b">\n</span><span style="color:#710">&quot;</span></span>
-    
-    <span style="color:#777">#load set of stop words</span>
-    stop_set = <span style="color:#369;font-weight:bold">set</span>(stopwords.words(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">english</span><span style="color:#710">&quot;</span></span>))
-    
-    start = time.time()
-    
-    l = Listener(cl,stop_set,model,start)
-    
-    <span style="color:#777">#This handles Twitter authentication and the connection to Twitter Streaming API</span>
-    
-    <span style="color:#777">#Oauth Handling</span>
-    auth = OAuthHandler(consumer_key, consumer_secret)
-    auth.set_access_token(access_token, access_token_secret)
-    
-    stream = Stream(auth, l)
-    <span style="color:#080;font-weight:bold">print</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Listening...</span><span style="color:#710">&quot;</span></span>
-    
-    <span style="color:#777">#initiate stream</span>
-    stream.sample()
-    
+  <div class="code"><pre><span class="line-numbers"> <a href="#n1" name="n1">1</a></span><span style="color:#080;font-weight:bold">if</span> __name__ == <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">__main__</span><span style="color:#710">'</span></span>:
+<span class="line-numbers"> <a href="#n2" name="n2">2</a></span>
+<span class="line-numbers"> <a href="#n3" name="n3">3</a></span>    <span style="color:#777">####################Variables that contain the user credentials for the Twitter API </span>
+<span class="line-numbers"> <a href="#n4" name="n4">4</a></span>    access_token = <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">ACCESS_TOKEN</span><span style="color:#710">&quot;</span></span>
+<span class="line-numbers"> <a href="#n5" name="n5">5</a></span>    access_token_secret = <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">ACCESS_TOKEN_SECRET</span><span style="color:#710">&quot;</span></span>
+<span class="line-numbers"> <a href="#n6" name="n6">6</a></span>    consumer_key = <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">CONSUMER_KEY</span><span style="color:#710">&quot;</span></span>
+<span class="line-numbers"> <a href="#n7" name="n7">7</a></span>    consumer_secret = <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">CONSUMER_SECRET</span><span style="color:#710">&quot;</span></span>
+<span class="line-numbers"> <a href="#n8" name="n8">8</a></span>    <span style="color:#777">#########################################################</span>
+<span class="line-numbers"> <a href="#n9" name="n9">9</a></span>    
+<span class="line-numbers"><strong><a href="#n10" name="n10">10</a></strong></span>    <span style="color:#777">#Write file header</span>
+<span class="line-numbers"><a href="#n11" name="n11">11</a></span>    f=<span style="color:#369;font-weight:bold">open</span>(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">./Data/{0}</span><span style="color:#710">&quot;</span></span>.format(sys.argv[<span style="color:#00D">1</span>]),<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">w</span><span style="color:#710">'</span></span>)
+<span class="line-numbers"><a href="#n12" name="n12">12</a></span>    f.write(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">original_text,filtered_output,sentiment,time </span><span style="color:#b0b">\n</span><span style="color:#710">&quot;</span></span>)
+<span class="line-numbers"><a href="#n13" name="n13">13</a></span>    f.close()
+<span class="line-numbers"><a href="#n14" name="n14">14</a></span>    
+<span class="line-numbers"><a href="#n15" name="n15">15</a></span>    
+<span class="line-numbers"><a href="#n16" name="n16">16</a></span>    <span style="color:#080;font-weight:bold">print</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Loading Classifier...</span><span style="color:#b0b">\n</span><span style="color:#b0b">\n</span><span style="color:#710">&quot;</span></span>
+<span class="line-numbers"><a href="#n17" name="n17">17</a></span>    
+<span class="line-numbers"><a href="#n18" name="n18">18</a></span>    <span style="color:#777">#load trained sklearn classifier</span>
+<span class="line-numbers"><a href="#n19" name="n19">19</a></span>    cl=joblib.load(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">Pickle/rfc.pkl</span><span style="color:#710">'</span></span>)
+<span class="line-numbers"><strong><a href="#n20" name="n20">20</a></strong></span>    
+<span class="line-numbers"><a href="#n21" name="n21">21</a></span>    <span style="color:#080;font-weight:bold">print</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Classifier Loaded...loading model...</span><span style="color:#b0b">\n</span><span style="color:#b0b">\n</span><span style="color:#710">&quot;</span></span>
+<span class="line-numbers"><a href="#n22" name="n22">22</a></span>    
+<span class="line-numbers"><a href="#n23" name="n23">23</a></span>    <span style="color:#777">#load w2v vectors from GoogleNews training set. </span>
+<span class="line-numbers"><a href="#n24" name="n24">24</a></span>    model= gs.models.Word2Vec.load_word2vec_format(
+<span class="line-numbers"><a href="#n25" name="n25">25</a></span>           <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">./static/Data/GoogleNews-vectors-negative300.bin</span><span style="color:#710">'</span></span>,binary=<span style="color:#069">True</span>)
+<span class="line-numbers"><a href="#n26" name="n26">26</a></span>    
+<span class="line-numbers"><a href="#n27" name="n27">27</a></span>    
+<span class="line-numbers"><a href="#n28" name="n28">28</a></span>    <span style="color:#080;font-weight:bold">print</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Model Loaded...</span><span style="color:#b0b">\n</span><span style="color:#b0b">\n</span><span style="color:#710">&quot;</span></span>
+<span class="line-numbers"><a href="#n29" name="n29">29</a></span>    
+<span class="line-numbers"><strong><a href="#n30" name="n30">30</a></strong></span>    <span style="color:#777">#load set of stop words</span>
+<span class="line-numbers"><a href="#n31" name="n31">31</a></span>    stop_set = <span style="color:#369;font-weight:bold">set</span>(stopwords.words(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">english</span><span style="color:#710">&quot;</span></span>))
+<span class="line-numbers"><a href="#n32" name="n32">32</a></span>    
+<span class="line-numbers"><a href="#n33" name="n33">33</a></span>    start = time.time()
+<span class="line-numbers"><a href="#n34" name="n34">34</a></span>    
+<span class="line-numbers"><a href="#n35" name="n35">35</a></span>    l = Listener(cl,stop_set,model,start)
+<span class="line-numbers"><a href="#n36" name="n36">36</a></span>    
+<span class="line-numbers"><a href="#n37" name="n37">37</a></span>    <span style="color:#777">#This handles Twitter authentication and the connection to Twitter Streaming API</span>
+<span class="line-numbers"><a href="#n38" name="n38">38</a></span>    
+<span class="line-numbers"><a href="#n39" name="n39">39</a></span>    <span style="color:#777">#Oauth Handling</span>
+<span class="line-numbers"><strong><a href="#n40" name="n40">40</a></strong></span>    auth = OAuthHandler(consumer_key, consumer_secret)
+<span class="line-numbers"><a href="#n41" name="n41">41</a></span>    auth.set_access_token(access_token, access_token_secret)
+<span class="line-numbers"><a href="#n42" name="n42">42</a></span>    
+<span class="line-numbers"><a href="#n43" name="n43">43</a></span>    stream = Stream(auth, l)
+<span class="line-numbers"><a href="#n44" name="n44">44</a></span>    <span style="color:#080;font-weight:bold">print</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Listening...</span><span style="color:#710">&quot;</span></span>
+<span class="line-numbers"><a href="#n45" name="n45">45</a></span>    
+<span class="line-numbers"><a href="#n46" name="n46">46</a></span>    <span style="color:#777">#initiate stream</span>
+<span class="line-numbers"><a href="#n47" name="n47">47</a></span>    stream.sample()
+<span class="line-numbers"><a href="#n48" name="n48">48</a></span>    
 </pre></div>
 </div>
 </div>
