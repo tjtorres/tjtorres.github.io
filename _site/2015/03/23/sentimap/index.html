@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="This blog details my data science and data visualization projects and thoughts.">
 
-    <title>Inside SentiMap - Orthogonal Projections</title>
+    <title>Inside SentiMap.us: Part 1 - Random Projections</title>
 
     <link rel="canonical" href="localhost:4000/2015/03/23/sentimap/">
 
@@ -49,7 +49,7 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="/">Orthogonal Projections</a>
+            <a class="navbar-brand" href="/">Random Projections</a>
         </div>
 
         <!-- Collect the nav links, forms, and other content for toggling -->
@@ -81,7 +81,7 @@
         <div class="row">
             <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
                 <div class="post-heading">
-                    <h1>Inside SentiMap</h1>
+                    <h1>Inside SentiMap.us: Part 1</h1>
                     
                     <h2 class="subheading">A How-To on Twitter Sentiment</h2>
                     
@@ -90,6 +90,7 @@
             </div>
         </div>
     </div>
+	
 </header>
 
 <!-- Post Content -->
@@ -98,11 +99,45 @@
         <div class="row">
             <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
 
-				<h2 id="this-is-a-simple-test-of-the-markdown-language">This is a simple test of the markdown language</h2>
+				<h1 id="introduction">Introduction</h1>
 
-<p>I just want to see if I can get anything out of it.</p>
+<p>This is the first in a series of planned future posts describing the building of my web app project <a href="http://sentimap.us">SentiMap.us</a>. The basic premise behind SentiMap is to plot localized trends in mood via realtime sentiment analysis of a geotagged Twitter stream. This post will focus mainly on the backend sentiment analysis portion of the project and take you through streaming tweets, feature extraction, and classification.</p>
 
-<pre><code>
+<p>Without getting too far into the details just yet, the main functionality behind the sentiment classification, in this case, comes from vectorizing tweets via Word2Vec to construct tweet feature vectors and then training a random forest classifier on a <a href="http://help.sentiment140.com/for-students">pre-classified tweet corpus</a>. We will cover each of these topics in greater detail later, but for now let’s focus on the setup.</p>
+
+<p>To that end we will start off needing a few tools:</p>
+
+<ul>
+  <li>Tweepy (Python library for dealing with the Twitter API)</li>
+  <li>NLTK (Natural Language Toolkit used for stopwords)</li>
+  <li>gensim (Python library containing Word2Vec algorithm)</li>
+  <li>Pandas (for managing the Tweet training corpus)</li>
+  <li>Scikit-Learn (providing machine learning functionality)</li>
+</ul>
+
+<p>The basic flow follows two main lines:</p>
+
+<p>####Training the Classifier####</p>
+
+<ol>
+  <li>Load the GoogleNews pre-trained Word2Vec vectors.</li>
+  <li>Import and format/clean the Sentiment140 Twitter Corpus.</li>
+  <li>Vectorize the training data tweets.</li>
+  <li>Train a classifier on the cleaned corpus data(I chose a Random Forest).</li>
+</ol>
+
+<p>####Prediciting Tweet Sentiment From Stream####</p>
+
+<ol>
+  <li>Grab JSON formatted output from the Stream endpoint of the Twitter API</li>
+  <li>Strip/clean tweet text.</li>
+  <li>Vectorize cleaned tweet.</li>
+  <li>Predict sentiment and store data in database.</li>
+</ol>
+
+<p>Test.</p>
+
+<pre><code class="language-python">
 def function():
 	here = []
 	for i in range(7):
@@ -116,19 +151,29 @@ function()
 
                 <ul class="pager">
                     
-                    <li class="previous">
-                        <a href="/2014/09/24/man-must-explore%20copy/" data-toggle="tooltip" data-placement="top" title="Man must explore, and this is exploration at its greatest">&larr; Previous Post</a>
-                    </li>
-                    
                     
                 </ul>
 
             </div>
         </div>
     </div>
+<div id="disqus_thread" class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1"></div>
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES * * */
+    var disqus_shortname = 'orthogonalprojections';
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
 </article>
 
 <hr>
+
 
 
     <!-- Footer -->
@@ -158,7 +203,7 @@ function()
                     </li>
                     
                 </ul>
-                <p class="copyright text-muted">Copyright &copy; Orthogonal Projections 2015</p>
+                <p class="copyright text-muted">Copyright &copy; Random Projections 2015</p>
             </div>
         </div>
     </div>

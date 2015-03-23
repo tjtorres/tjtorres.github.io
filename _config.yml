@@ -1,5 +1,5 @@
 # Site settings
-title: Orthogonal Projections
+title: Random Projections
 header-img: img/escher.jpg
 email: tjtorres@ucsc.edu
 description: "This blog details my data science and data visualization projects and thoughts."
@@ -18,3 +18,4 @@ exclude: ["less","node_modules","Gruntfile.js","package.json","README.md"]
 #kramdown specs
 kramdown:
   input: GFM
+  syntax_highlighter: pygments
