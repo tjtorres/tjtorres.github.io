@@ -10,7 +10,7 @@ github_username:  tjtorres
 
 # Build settings
 markdown: kramdown
-highlighter: redcarpet#pygments
+highlighter: pygments
 permalink: pretty
 paginate: 5
 exclude: ["less","node_modules","Gruntfile.js","package.json","README.md"]
@@ -18,6 +18,6 @@ exclude: ["less","node_modules","Gruntfile.js","package.json","README.md"]
 #kramdown specs
 kramdown:
 
-  use_coderay: true
+  #use_coderay: true
   #coderay:
   coderay_line_numbers: nil
