@@ -99,362 +99,309 @@
         <div class="row">
             <div class="col-lg-9 col-lg-offset-1 col-md-10 col-md-offset-1">
 
-				<h1 id="introduction">Introduction</h1>
+				<h1>Introduction</h1>
 
 <p>This is the first in a series of planned posts describing the building of my web app project <a href="http://sentimap.us">SentiMap.us</a>. The basic premise behind SentiMap is to plot localized trends in mood via realtime sentiment analysis of a geotagged Twitter stream. This post will focus mainly on the backend sentiment analysis portion of the project and take you through streaming tweets, feature extraction, and classification. However, if you get impatient waiting for future posts, the full code is available on <a href="https://github.com/tjtorres/SentiMap">GitHub</a> for you to peruse at your leisure.</p>
 
-<p>Without getting too far into the details just yet, the main functionality behind the sentiment classification, in this case, comes from vectorizing tweets via Word2Vec to construct tweet feature vectors and then training a random forest classifier on a <a href="http://help.sentiment140.com/for-students">pre-classified tweet corpus</a>. We will cover each of these topics in greater detail later, but for now let’s focus on the setup.</p>
+<p>Without getting too far into the details just yet, the main functionality behind the sentiment classification, in this case, comes from vectorizing tweets via Word2Vec to construct tweet feature vectors and then training a random forest classifier on a <a href="http://help.sentiment140.com/for-students">pre-classified tweet corpus</a>. We will cover each of these topics in greater detail later, but for now let&#39;s focus on the setup.</p>
 
 <p>The entirety of the coding for the first post will be in python, and will use the following libraries:</p>
 
 <ul>
-  <li><a href="https://github.com/tweepy/tweepy">Tweepy</a> (Python library for dealing with the Twitter API)</li>
-  <li><a href="http://www.nltk.org">NLTK</a> (Natural Language Toolkit used for stopwords)</li>
-  <li><a href="https://radimrehurek.com/gensim/">gensim</a> (Python library containing Word2Vec algorithm)</li>
-  <li><a href="http://pandas.pydata.org">Pandas</a> (for managing the Tweet training corpus)</li>
-  <li><a href="http://scikit-learn.org/stable/">Scikit-Learn</a> (providing machine learning functionality)</li>
+<li><a href="https://github.com/tweepy/tweepy">Tweepy</a> (Python library for dealing with the Twitter API)</li>
+<li><a href="http://www.nltk.org">NLTK</a> (Natural Language Toolkit used for stopwords)</li>
+<li><a href="https://radimrehurek.com/gensim/">gensim</a> (Python library containing Word2Vec algorithm)</li>
+<li><a href="http://pandas.pydata.org">Pandas</a> (for managing the Tweet training corpus)</li>
+<li><a href="http://scikit-learn.org/stable/">Scikit-Learn</a> (providing machine learning functionality)</li>
 </ul>
-
-<div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span class="line-numbers"><a href="#n1" name="n1">1</a></span>pip install tweepy nltk gensim pandas sklearn
-</pre></div>
-</div>
-</div>
-
-<p>Note that in order to use NLTK’s stop word corpus you must first download it via</p>
-
-<div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span class="line-numbers"><a href="#n1" name="n1">1</a></span>&gt;&gt;&gt;<span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">nltk</span>
-<span class="line-numbers"><a href="#n2" name="n2">2</a></span>&gt;&gt;&gt;nltk.download()
-</pre></div>
-</div>
-</div>
-
+<div class="highlight"><pre><code class="language-sh" data-lang="sh">pip install tweepy nltk gensim pandas sklearn
+</code></pre></div>
+<p>Note that in order to use NLTK&#39;s stop word corpus you must first download it via</p>
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="o">&gt;&gt;&gt;</span><span class="kn">import</span> <span class="nn">nltk</span>
+<span class="o">&gt;&gt;&gt;</span><span class="n">nltk</span><span class="o">.</span><span class="n">download</span><span class="p">()</span>
+</code></pre></div>
 <p>With that out of the way, the basic flow follows two main lines:</p>
 
-<h4 id="training-the-classifier">Training the Classifier</h4>
+<h4>Training the Classifier</h4>
 
 <ol>
-  <li>Load the GoogleNews pre-trained Word2Vec vectors.</li>
-  <li>Import and format/clean the Sentiment140 Twitter Corpus.</li>
-  <li>Vectorize the training data tweets.</li>
-  <li>Train a classifier on the cleaned corpus data (I chose a Random Forest).</li>
+<li>Load the GoogleNews pre-trained Word2Vec vectors. </li>
+<li>Import and format/clean the Sentiment140 Twitter Corpus.</li>
+<li>Vectorize the training data tweets.</li>
+<li>Train a classifier on the cleaned corpus data (I chose a Random Forest).</li>
 </ol>
 
-<h4 id="predicting-tweet-sentiment-from-stream">Predicting Tweet Sentiment From Stream</h4>
+<h4>Predicting Tweet Sentiment From Stream</h4>
 
 <ol>
-  <li>Grab JSON formatted output from the Stream endpoint of the Twitter API</li>
-  <li>Strip/clean tweet text.</li>
-  <li>Vectorize cleaned tweet.</li>
-  <li>Predict sentiment and store data in database.</li>
+<li>Grab JSON formatted output from the Stream endpoint of the Twitter API</li>
+<li>Strip/clean tweet text.</li>
+<li>Vectorize cleaned tweet.</li>
+<li>Predict sentiment and store data in database.</li>
 </ol>
 
-<h2 id="representing-words-as-vectors">Representing Words as Vectors</h2>
+<h2>Representing Words as Vectors</h2>
 
-<p>We’ll start out by training a machine learning classifier to predict tweet sentiment. The general methodology behind any classification scheme is to take a dataset and transform each data point into a vector that, we hope, represents its most salient features with respect to the task at hand. This process of feature extraction can be nearly trivial for some applications, but in general it represents a substantive obstacle with no unique solution.</p>
+<p>We&#39;ll start out by training a machine learning classifier to predict tweet sentiment. The general methodology behind any classification scheme is to take a dataset and transform each data point into a vector that, we hope, represents its most salient features with respect to the task at hand. This process of feature extraction can be nearly trivial for some applications, but in general it represents a substantive obstacle with no unique solution. </p>
 
-<p>In the case of natural language processing (NLP), the process of feature extraction for use in sentiment analysis is particularly ill-defined. When we, as people, parse a sentence or phrase we can draw upon years of past experience and contextual clues from countless interactions with language to determine whether said phrase is generally positive, negative, or neutral. For instance, most people would generally decide that the sentence “He is not the brightest crayon in the box.” is reasonably negative. However, without the idiomatic context, the phrase itself might be viewed as merely neutral.</p>
+<p>In the case of natural language processing (NLP), the process of feature extraction for use in sentiment analysis is particularly ill-defined. When we, as people, parse a sentence or phrase we can draw upon years of past experience and contextual clues from countless interactions with language to determine whether said phrase is generally positive, negative, or neutral. For instance, most people would generally decide that the sentence &quot;He is not the brightest crayon in the box.&quot; is reasonably negative. However, without the idiomatic context, the phrase itself might be viewed as merely neutral. </p>
 
-<p>Additionally, taking this lack of context to the extreme we might consider the same phrase where even the order of words (that is the contextual clues in the the text itself) were beyond our knowledge. Or perhaps in it’s ultimate manifestation, the ordering of letters and characters. It’s easy to see the difficulty in deciding anything, other than perhaps letter frequency, about a phrase that has been deconstructed so completely. Yet this is somewhat akin to the world that machines inhabit, having no previous knowledge of language context beyond syntactic rules for translating code documents into binary.</p>
+<p>Additionally, taking this lack of context to the extreme we might consider the same phrase where even the order of words (that is the contextual clues in the the text itself) were beyond our knowledge. Or perhaps in it&#39;s ultimate manifestation, the ordering of letters and characters. It&#39;s easy to see the difficulty in deciding anything, other than perhaps letter frequency, about a phrase that has been deconstructed so completely. Yet this is somewhat akin to the world that machines inhabit, having no previous knowledge of language context beyond syntactic rules for translating code documents into binary. </p>
 
-<p>Thus, while there are certainly more naive approaches to constructing vector representations of documents, the big challenge is then to construct systems which simulate the process of learning contextual knowledge. To that end, we will focus on a system of algorithms, called Word2Vec, designed to extract context clues for specific words via the analysis of massive datasets of text.</p>
+<p>Thus, while there are certainly more naive approaches to constructing vector representations of documents, the big challenge is then to construct systems which simulate the process of learning contextual knowledge. To that end, we will focus on a system of algorithms, called Word2Vec, designed to extract context clues for specific words via the analysis of massive datasets of text. </p>
 
-<p>As much as I’d love to speak a bit about how Word2Vec works (perhaps a future blog post) in gritty technical detail, for now I will point you to a <a href="http://technology.stitchfix.com/blog/2015/03/11/word-is-worth-a-thousand-vectors/">blog post written by a friend of mine</a> which is quite accessible to the lay-person, but contains a large number of technical links at the bottom for those who wish to delve further. Suffice it to say here that Word2Vec “learns” N-dimensional vector representations of words by analyzing and associating words that are less than a certain distance from them in the corpus of training text. At the end of the day we want two words to have vectors that are “close” to each other when it is probabilistically favorable for them to be near each other in a system of documents. For example, a decent metric for determining the “closeness” of vectors is the angle between them which can be easily obtained through use of the inner (or dot) product. Consequently, one might expect that “lion” and “giraffe” are often mentioned within close proximity to one another and thus the angle between their vector representations should be close to zero.</p>
+<p>As much as I&#39;d love to speak a bit about how Word2Vec works (perhaps a future blog post) in gritty technical detail, for now I will point you to a <a href="http://technology.stitchfix.com/blog/2015/03/11/word-is-worth-a-thousand-vectors/">blog post written by a friend of mine</a> which is quite accessible to the lay-person, but contains a large number of technical links at the bottom for those who wish to delve further. Suffice it to say here that Word2Vec &quot;learns&quot; N-dimensional vector representations of words by analyzing and associating words that are less than a certain distance from them in the corpus of training text. At the end of the day we want two words to have vectors that are &quot;close&quot; to each other when it is probabilistically favorable for them to be near each other in a system of documents. For example, a decent metric for determining the &quot;closeness&quot; of vectors is the angle between them which can be easily obtained through use of the inner (or dot) product. Consequently, one might expect that &quot;lion&quot; and &quot;giraffe&quot; are often mentioned within close proximity to one another and thus the angle between their vector representations should be close to zero. </p>
 
-<p>Given the amount of text needed to train these models, it is often advantageous to use large corpuses of words with their pre-trained vectors representations. As the original implementation of Word2Vec was invented by a Google engineer, the codebase, as well as <a href="https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing">pre-trained vector sets</a> can be found on their site <a href="https://code.google.com/p/word2vec/">here</a>. For this example we will use their vectors that have been trained on GoogleNews stories.</p>
+<p>Given the amount of text needed to train these models, it is often advantageous to use large corpuses of words with their pre-trained vectors representations. As the original implementation of Word2Vec was invented by a Google engineer, the codebase, as well as <a href="https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing">pre-trained vector sets</a> can be found on their site <a href="https://code.google.com/p/word2vec/">here</a>. For this example we will use their vectors that have been trained on GoogleNews stories. </p>
 
-<p>Since our vectors are pre-trained we will just need to load the binary file into gensim’s Word2Vec implementation. Vectors for given words are then easily accessible by using the word strings as keys on our model instance. Then we will construct a function to take a string with only letters and whitespace and remove common words of little contextual meaning, called stop words, then output a vector based on the average of the set of vectors that correspond to words in the string.</p>
+<p>Since our vectors are pre-trained we will just need to load the binary file into gensim&#39;s Word2Vec implementation. Vectors for given words are then easily accessible by using the word strings as keys on our model instance. Then we will construct a function to take a string with only letters and whitespace and remove common words of little contextual meaning, called stop words, then output a vector based on the average of the set of vectors that correspond to words in the string.</p>
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">gensim</span> <span class="kn">as</span> <span class="nn">gs</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">nltk.corpus</span> <span class="kn">import</span> <span class="n">stopwords</span>
 
-<div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span class="line-numbers"> <a href="#n1" name="n1">1</a></span><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">gensim</span> <span style="color:#080;font-weight:bold">as</span> gs
-<span class="line-numbers"> <a href="#n2" name="n2">2</a></span><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">numpy</span> <span style="color:#080;font-weight:bold">as</span> np
-<span class="line-numbers"> <a href="#n3" name="n3">3</a></span><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">nltk.corpus</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">stopwords</span>
-<span class="line-numbers"> <a href="#n4" name="n4">4</a></span>
-<span class="line-numbers"> <a href="#n5" name="n5">5</a></span>stop_set = <span style="color:#369;font-weight:bold">set</span>(stopwords.words(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">english</span><span style="color:#710">&quot;</span></span>))
-<span class="line-numbers"> <a href="#n6" name="n6">6</a></span>
-<span class="line-numbers"> <a href="#n7" name="n7">7</a></span>model = gs.models.Word2Vec.load_word2vec_format(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">./GoogleNews-vectors-negative300.bin</span><span style="color:#710">'</span></span>, binary=<span style="color:#069">True</span>)
-<span class="line-numbers"> <a href="#n8" name="n8">8</a></span>
-<span class="line-numbers"> <a href="#n9" name="n9">9</a></span><span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">phrase2vec</span>(phrase):
-<span class="line-numbers"><strong><a href="#n10" name="n10">10</a></strong></span>    phrase = phrase.lower().split()
-<span class="line-numbers"><a href="#n11" name="n11">11</a></span>    phrase_fil = [w <span style="color:#080;font-weight:bold">for</span> w <span style="color:#080;font-weight:bold">in</span> phrase <span style="color:#080;font-weight:bold">if</span> <span style="color:#080;font-weight:bold">not</span> w <span style="color:#080;font-weight:bold">in</span> stop_set]
-<span class="line-numbers"><a href="#n12" name="n12">12</a></span>    size = <span style="color:#00D">0</span>
-<span class="line-numbers"><a href="#n13" name="n13">13</a></span>    vec = np.zeros(<span style="color:#00D">300</span>)
-<span class="line-numbers"><a href="#n14" name="n14">14</a></span>    <span style="color:#080;font-weight:bold">for</span> word <span style="color:#080;font-weight:bold">in</span> phrase_fil:
-<span class="line-numbers"><a href="#n15" name="n15">15</a></span>        <span style="color:#080;font-weight:bold">try</span>:
-<span class="line-numbers"><a href="#n16" name="n16">16</a></span>            vec= np.add(vec,model[word])
-<span class="line-numbers"><a href="#n17" name="n17">17</a></span>            size+=<span style="color:#00D">1</span>
-<span class="line-numbers"><a href="#n18" name="n18">18</a></span>        <span style="color:#080;font-weight:bold">except</span>:
-<span class="line-numbers"><a href="#n19" name="n19">19</a></span>            <span style="color:#080;font-weight:bold">pass</span>
-<span class="line-numbers"><strong><a href="#n20" name="n20">20</a></strong></span>    <span style="color:#080;font-weight:bold">if</span> size==<span style="color:#00D">0</span>:
-<span class="line-numbers"><a href="#n21" name="n21">21</a></span>        size=<span style="color:#00D">1</span>
-<span class="line-numbers"><a href="#n22" name="n22">22</a></span>    <span style="color:#080;font-weight:bold">return</span> np.divide(vec,size)
-<span class="line-numbers"><a href="#n23" name="n23">23</a></span>
-</pre></div>
-</div>
-</div>
+<span class="n">stop_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">stopwords</span><span class="o">.</span><span class="n">words</span><span class="p">(</span><span class="s">&quot;english&quot;</span><span class="p">))</span>
 
+<span class="n">model</span> <span class="o">=</span> <span class="n">gs</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Word2Vec</span><span class="o">.</span><span class="n">load_word2vec_format</span><span class="p">(</span><span class="s">&#39;./GoogleNews-vectors-negative300.bin&#39;</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">phrase2vec</span><span class="p">(</span><span class="n">phrase</span><span class="p">):</span>
+    <span class="n">phrase</span> <span class="o">=</span> <span class="n">phrase</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+    <span class="n">phrase_fil</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">phrase</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">stop_set</span><span class="p">]</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">300</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">phrase_fil</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">vec</span><span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span><span class="n">model</span><span class="p">[</span><span class="n">word</span><span class="p">])</span>
+            <span class="n">size</span><span class="o">+=</span><span class="mi">1</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">if</span> <span class="n">size</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">size</span><span class="o">=</span><span class="mi">1</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span><span class="n">size</span><span class="p">)</span>
+</code></pre></div>
 <p>We now have a nice function for vectorizing tweets, once they have been properly formatted.</p>
 
-<h2 id="cleaning-the-data">Cleaning the Data</h2>
+<h2>Cleaning the Data</h2>
 
-<p>Next, we’ll need to get some training data to run our feature extraction method on. Though there are several Twitter sentiment corpora on the web, many of them sacrifice sample size for accuracy of classification of the training set. Since we are dealing with the potentially very powerful, but somewhat nebulous, concept of word vectors we should choose instead to err on the side of a much larger training set, with perhaps a slight hit to classification accuracy. This can be accomplished by creating heuristics for classification rather than relying on manual techniques. The <a href="http://help.sentiment140.com/for-students/">Sentiment 140 Corpus</a> constructs its sentiment classification heuristic on tweets that contain emoticons. Of the tweets that contain emoticons, those that contain mostly positive emoticons are classified as such, and the same goes for the negative set.</p>
+<p>Next, we&#39;ll need to get some training data to run our feature extraction method on. Though there are several Twitter sentiment corpora on the web, many of them sacrifice sample size for accuracy of classification of the training set. Since we are dealing with the potentially very powerful, but somewhat nebulous, concept of word vectors we should choose instead to err on the side of a much larger training set, with perhaps a slight hit to classification accuracy. This can be accomplished by creating heuristics for classification rather than relying on manual techniques. The <a href="http://help.sentiment140.com/for-students/">Sentiment 140 Corpus</a> constructs its sentiment classification heuristic on tweets that contain emoticons. Of the tweets that contain emoticons, those that contain mostly positive emoticons are classified as such, and the same goes for the negative set. </p>
 
-<p>With this heuristic one can immediately automate the data classification task for the training set, which allows for a far greater sample size (in this case 1.6M tweets), at the expense of a possible drop in accuracy.</p>
+<p>With this heuristic one can immediately automate the data classification task for the training set, which allows for a far greater sample size (in this case 1.6M tweets), at the expense of a possible drop in accuracy. </p>
 
-<p>To analyze and clean our data we’re going to work with Pandas, but first let’s take a brief look at the format of the training data.</p>
+<p>To analyze and clean our data we&#39;re going to work with Pandas, but first let&#39;s take a brief look at the format of the training data.</p>
+<div class="highlight"><pre><code class="language-sh" data-lang="sh"><span class="nv">$head</span> -10 training.1600000.processed.noemoticon.csv
 
-<div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span class="line-numbers"><a href="#n1" name="n1">1</a></span>$head -10 training.1600000.processed.noemoticon.csv
-<span class="line-numbers"><a href="#n2" name="n2">2</a></span>
-<span class="line-numbers"><a href="#n3" name="n3">3</a></span>&quot;0&quot;,&quot;1467810369&quot;,&quot;Mon Apr 06 22:19:45 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;_TheSpecialOne_&quot;,&quot;@switchfoot http://twitpic.com/2y1zl - Awww, that's a bummer.  You shoulda got David Carr of Third Day to do it. ;D&quot;
-<span class="line-numbers"><a href="#n4" name="n4">4</a></span>&quot;0&quot;,&quot;1467810672&quot;,&quot;Mon Apr 06 22:19:49 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;scotthamilton&quot;,&quot;is upset that he can't update his Facebook by texting it... and might cry as a result  School today also. Blah!&quot;
-<span class="line-numbers"><a href="#n5" name="n5">5</a></span>&quot;0&quot;,&quot;1467810917&quot;,&quot;Mon Apr 06 22:19:53 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;mattycus&quot;,&quot;@Kenichan I dived many times for the ball. Managed to save 50%  The rest go out of bounds&quot;
-<span class="line-numbers"><a href="#n6" name="n6">6</a></span>&quot;0&quot;,&quot;1467811184&quot;,&quot;Mon Apr 06 22:19:57 PDT 2009&quot;,&quot;NO_QUERY&quot;,&quot;ElleCTF&quot;,&quot;my whole body feels itchy and like its on fire &quot;
-<span class="line-numbers"><a href="#n7" name="n7">7</a></span>$
-</pre></div>
-</div>
-</div>
+<span class="s2">&quot;0&quot;</span>,<span class="s2">&quot;1467810369&quot;</span>,<span class="s2">&quot;Mon Apr 06 22:19:45 PDT 2009&quot;</span>,<span class="s2">&quot;NO_QUERY&quot;</span>,<span class="s2">&quot;_TheSpecialOne_&quot;</span>,<span class="s2">&quot;@switchfoot http://twitpic.com/2y1zl - Awww, that&#39;s a bummer.  You shoulda got David Carr of Third Day to do it. ;D&quot;</span>
+<span class="s2">&quot;0&quot;</span>,<span class="s2">&quot;1467810672&quot;</span>,<span class="s2">&quot;Mon Apr 06 22:19:49 PDT 2009&quot;</span>,<span class="s2">&quot;NO_QUERY&quot;</span>,<span class="s2">&quot;scotthamilton&quot;</span>,<span class="s2">&quot;is upset that he can&#39;t update his Facebook by texting it... and might cry as a result  School today also. Blah!&quot;</span>
+<span class="s2">&quot;0&quot;</span>,<span class="s2">&quot;1467810917&quot;</span>,<span class="s2">&quot;Mon Apr 06 22:19:53 PDT 2009&quot;</span>,<span class="s2">&quot;NO_QUERY&quot;</span>,<span class="s2">&quot;mattycus&quot;</span>,<span class="s2">&quot;@Kenichan I dived many times for the ball. Managed to save 50%  The rest go out of bounds&quot;</span>
+<span class="s2">&quot;0&quot;</span>,<span class="s2">&quot;1467811184&quot;</span>,<span class="s2">&quot;Mon Apr 06 22:19:57 PDT 2009&quot;</span>,<span class="s2">&quot;NO_QUERY&quot;</span>,<span class="s2">&quot;ElleCTF&quot;</span>,<span class="s2">&quot;my whole body feels itchy and like its on fire &quot;</span>
+<span class="err">$</span>
+</code></pre></div>
+<p>From the first few lines you can see the general format of the data and should notice several things. For instance the training data file doesn&#39;t have a header, so we&#39;ll have to name the columns ourselves. Also, the text of the tweets has been formatted to remove emoticons, but still contains plenty of errant strings like URLs and @name tags we&#39;ll need to remove before proceeding to vectorize them. </p>
 
-<p>From the first few lines you can see the general format of the data and should notice several things. For instance the training data file doesn’t have a header, so we’ll have to name the columns ourselves. Also, the text of the tweets has been formatted to remove emoticons, but still contains plenty of errant strings like URLs and @name tags we’ll need to remove before proceeding to vectorize them.</p>
+<p>First let&#39;s import the csv file and store it as a dataframe.</p>
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="n">name_list</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;sentiment&#39;</span><span class="p">,</span><span class="s">&#39;id&#39;</span><span class="p">,</span><span class="s">&#39;time&#39;</span><span class="p">,</span><span class="s">&#39;query&#39;</span><span class="p">,</span><span class="s">&#39;user&#39;</span><span class="p">,</span><span class="s">&#39;text&#39;</span><span class="p">]</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s">&quot;training.1600000.processed.noemoticon.csv&quot;</span><span class="p">,</span>\
+                 <span class="n">header</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span> <span class="n">name_list</span><span class="p">)</span>
+</code></pre></div>
+<p>Now we&#39;ll create a function that takes a string and strips it down to only the text content we care about, removing URLs, names, emoji character sets, and &quot;#&quot; part of the hashtags. We can also optimize our data to be more uniform by taking repeated instances of letters, as in the string &quot;loooooooooove&quot;, and transforming them down to 2 at most. This is best accomplished using python&#39;s regular expressions module. I&#39;ll construct the function here, keeping things a bit more long form for the sake of readability. </p>
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">re</span>
 
-<p>First let’s import the csv file and store it as a dataframe.</p>
+<span class="c">#compile regular expressions that match repeated characters and emoji unicode</span>
+<span class="n">emoji</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s">u&#39;[^</span><span class="se">\x00</span><span class="s">-</span><span class="se">\x7F\x80</span><span class="s">-</span><span class="se">\xFF\u0100</span><span class="s">-</span><span class="se">\u017F\u0180</span><span class="s">-</span><span class="se">\u024F\u1E00</span><span class="s">-</span><span class="se">\u1EFF</span><span class="s">]&#39;</span><span class="p">,</span><span class="n">re</span><span class="o">.</span><span class="n">UNICODE</span><span class="p">)</span>
+<span class="n">multiple</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s">r&quot;(.)\1{1,}&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span>
 
-<div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span class="line-numbers"><a href="#n1" name="n1">1</a></span><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">pandas</span> <span style="color:#080;font-weight:bold">as</span> pd
-<span class="line-numbers"><a href="#n2" name="n2">2</a></span>name_list = [<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">sentiment</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">id</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">time</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">query</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">user</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">text</span><span style="color:#710">'</span></span>]
-<span class="line-numbers"><a href="#n3" name="n3">3</a></span>df = pd.read_csv(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">training.1600000.processed.noemoticon.csv</span><span style="color:#710">&quot;</span></span>,\
-<span class="line-numbers"><a href="#n4" name="n4">4</a></span>                 header=<span style="color:#069">None</span>, names= name_list)
-</pre></div>
-</div>
-</div>
+<span class="k">def</span> <span class="nf">format</span><span class="p">(</span><span class="n">tweet</span><span class="p">):</span>
 
-<p>Now we’ll create a function that takes a string and strips it down to only the text content we care about, removing URLs, names, emoji character sets, and “#” part of the hashtags. We can also optimize our data to be more uniform by taking repeated instances of letters, as in the string “loooooooooove”, and transforming them down to 2 at most. This is best accomplished using python’s regular expressions module. I’ll construct the function here, keeping things a bit more long form for the sake of readability.</p>
+    <span class="c">#strip emoji</span>
+    <span class="n">stripped</span> <span class="o">=</span> <span class="n">emoji</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s">&#39;&#39;</span><span class="p">,</span><span class="n">elem</span><span class="p">[</span><span class="s">&#39;text&#39;</span><span class="p">])</span>
 
-<div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span class="line-numbers"> <a href="#n1" name="n1">1</a></span><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">re</span>
-<span class="line-numbers"> <a href="#n2" name="n2">2</a></span>
-<span class="line-numbers"> <a href="#n3" name="n3">3</a></span><span style="color:#777">#compile regular expressions that match repeated characters and emoji unicode</span>
-<span class="line-numbers"> <a href="#n4" name="n4">4</a></span>emoji = re.compile(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">u</span><span style="color:#710">'</span><span style="color:#D20">[^</span><span style="color:#b0b">\x00</span><span style="color:#D20">-</span><span style="color:#b0b">\x7F</span><span style="color:#b0b">\x80</span><span style="color:#D20">-</span><span style="color:#b0b">\xFF</span><span style="color:#b0b">\u0100</span><span style="color:#D20">-</span><span style="color:#b0b">\u017F</span><span style="color:#b0b">\u0180</span><span style="color:#D20">-</span><span style="color:#b0b">\u024F</span><span style="color:#b0b">\u1E00</span><span style="color:#D20">-</span><span style="color:#b0b">\u1EFF</span><span style="color:#D20">]</span><span style="color:#710">'</span></span>,re.UNICODE)
-<span class="line-numbers"> <a href="#n5" name="n5">5</a></span>multiple = re.compile(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">&quot;</span><span style="color:#D20">(.)</span><span style="color:#D20">\1</span><span style="color:#D20">{1,}</span><span style="color:#710">&quot;</span></span>, re.DOTALL)
-<span class="line-numbers"> <a href="#n6" name="n6">6</a></span>
-<span class="line-numbers"> <a href="#n7" name="n7">7</a></span><span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">format</span>(tweet):
-<span class="line-numbers"> <a href="#n8" name="n8">8</a></span>
-<span class="line-numbers"> <a href="#n9" name="n9">9</a></span>    <span style="color:#777">#strip emoji</span>
-<span class="line-numbers"><strong><a href="#n10" name="n10">10</a></strong></span>    stripped = emoji.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#710">'</span></span>,elem[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">text</span><span style="color:#710">'</span></span>])
-<span class="line-numbers"><a href="#n11" name="n11">11</a></span>    
-<span class="line-numbers"><a href="#n12" name="n12">12</a></span>    <span style="color:#777">#strip URLs</span>
-<span class="line-numbers"><a href="#n13" name="n13">13</a></span>    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">'</span><span style="color:#D20">http[s]?[^</span><span style="color:#D20">\s</span><span style="color:#D20">]+</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#710">'</span></span>, stripped)
-<span class="line-numbers"><a href="#n14" name="n14">14</a></span>    
-<span class="line-numbers"><a href="#n15" name="n15">15</a></span>    <span style="color:#777">#strip &quot;@name&quot; components</span>
-<span class="line-numbers"><a href="#n16" name="n16">16</a></span>    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">'</span><span style="color:#D20">(@[A-Za-z0-9</span><span style="color:#D20">\_</span><span style="color:#D20">]+)</span><span style="color:#710">'</span></span> , <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#710">&quot;</span></span> ,stripped)
-<span class="line-numbers"><a href="#n17" name="n17">17</a></span>    
-<span class="line-numbers"><a href="#n18" name="n18">18</a></span>    <span style="color:#777">#strip html '&amp;amp;', '&amp;lt;', etc.  </span>
-<span class="line-numbers"><a href="#n19" name="n19">19</a></span>    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">'</span><span style="color:#D20">[</span><span style="color:#D20">\&amp;</span><span style="color:#D20">].*;</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#710">'</span></span>,stripped)
-<span class="line-numbers"><strong><a href="#n20" name="n20">20</a></strong></span>    
-<span class="line-numbers"><a href="#n21" name="n21">21</a></span>    <span style="color:#777">#strip punctuation</span>
-<span class="line-numbers"><a href="#n22" name="n22">22</a></span>    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">'</span><span style="color:#D20">[#|</span><span style="color:#D20">\!</span><span style="color:#D20">|</span><span style="color:#D20">\-</span><span style="color:#D20">|</span><span style="color:#D20">\+</span><span style="color:#D20">|:|//]</span><span style="color:#710">'</span></span>, <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20"> </span><span style="color:#710">&quot;</span></span>, stripped)
-<span class="line-numbers"><a href="#n23" name="n23">23</a></span>    
-<span class="line-numbers"><a href="#n24" name="n24">24</a></span>    <span style="color:#777">#strip the common &quot;RT&quot;</span>
-<span class="line-numbers"><a href="#n25" name="n25">25</a></span>    stripped = re.sub( <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">RT.</span><span style="color:#710">'</span></span>,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#710">'</span></span>, stripped)
-<span class="line-numbers"><a href="#n26" name="n26">26</a></span>    
-<span class="line-numbers"><a href="#n27" name="n27">27</a></span>    <span style="color:#777">#strip whitespace down to one.</span>
-<span class="line-numbers"><a href="#n28" name="n28">28</a></span>    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">[</span><span style="color:#D20">\s</span><span style="color:#D20">]+</span><span style="color:#710">'</span></span> ,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20"> </span><span style="color:#710">'</span></span>, stripped).strip()
-<span class="line-numbers"><a href="#n29" name="n29">29</a></span>    
-<span class="line-numbers"><strong><a href="#n30" name="n30">30</a></strong></span>    <span style="color:#777">#strip multiple occurrences of letters</span>
-<span class="line-numbers"><a href="#n31" name="n31">31</a></span>    stripped = multiple.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#E40">r</span><span style="color:#710">&quot;</span><span style="color:#D20">\1</span><span style="color:#D20">\1</span><span style="color:#710">&quot;</span></span>, stripped)
-<span class="line-numbers"><a href="#n32" name="n32">32</a></span>    
-<span class="line-numbers"><a href="#n33" name="n33">33</a></span>    <span style="color:#777">#strip all non-latin characters</span>
-<span class="line-numbers"><a href="#n34" name="n34">34</a></span>    <span style="color:#777">#if we wish to deal with foreign language tweets, we would need to first </span>
-<span class="line-numbers"><a href="#n35" name="n35">35</a></span>    <span style="color:#777">#translate them before taking this step.</span>
-<span class="line-numbers"><a href="#n36" name="n36">36</a></span>    
-<span class="line-numbers"><a href="#n37" name="n37">37</a></span>    stripped = re.sub(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">[^a-zA-Z0-9|</span><span style="color:#b0b">\'</span><span style="color:#D20">]</span><span style="color:#710">'</span></span>, <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20"> </span><span style="color:#710">&quot;</span></span>, stripped).strip()
-<span class="line-numbers"><a href="#n38" name="n38">38</a></span>    
-<span class="line-numbers"><a href="#n39" name="n39">39</a></span>    <span style="color:#080;font-weight:bold">return</span> stripped
-</pre></div>
-</div>
-</div>
+    <span class="c">#strip URLs</span>
+    <span class="n">stripped</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s">r&#39;http[s]?[^\s]+&#39;</span><span class="p">,</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">stripped</span><span class="p">)</span>
 
-<p>Take a look at <a href="https://docs.python.org/2/howto/regex.html">Python’s RegEx HOW-TO</a> if you’re confused on the above format. You can also test them out yourself by visiting <a href="http://regexr.com">Regexr</a>.</p>
+    <span class="c">#strip &quot;@name&quot; components</span>
+    <span class="n">stripped</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s">r&#39;(@[A-Za-z0-9\_]+)&#39;</span> <span class="p">,</span> <span class="s">&quot;&quot;</span> <span class="p">,</span><span class="n">stripped</span><span class="p">)</span>
 
-<h2 id="training-the-classifier-1">Training the Classifier</h2>
+    <span class="c">#strip html &#39;&amp;amp;&#39;, &#39;&amp;lt;&#39;, etc.  </span>
+    <span class="n">stripped</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s">r&#39;[\&amp;].*;&#39;</span><span class="p">,</span><span class="s">&#39;&#39;</span><span class="p">,</span><span class="n">stripped</span><span class="p">)</span>
 
-<p>Now we’re ready to train our classifier. Let’s start off by making an array of feature vectors for our training data, as well as an array of target values for the sentiment.</p>
+    <span class="c">#strip punctuation</span>
+    <span class="n">stripped</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s">r&#39;[#|\!|\-|\+|:|//]&#39;</span><span class="p">,</span> <span class="s">&quot; &quot;</span><span class="p">,</span> <span class="n">stripped</span><span class="p">)</span>
 
-<div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span class="line-numbers"> <a href="#n1" name="n1">1</a></span><span style="color:#777">#initialize a numpy array to the proper shape and a counter. </span>
-<span class="line-numbers"> <a href="#n2" name="n2">2</a></span>training_data = np.zeros((df.shape[<span style="color:#00D">0</span>],<span style="color:#00D">300</span>))
-<span class="line-numbers"> <a href="#n3" name="n3">3</a></span>counter = <span style="color:#00D">0</span>
-<span class="line-numbers"> <a href="#n4" name="n4">4</a></span><span style="color:#777">#add vectorized tweet text to numpy array.</span>
-<span class="line-numbers"> <a href="#n5" name="n5">5</a></span><span style="color:#080;font-weight:bold">for</span> tweet <span style="color:#080;font-weight:bold">in</span> df[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">text</span><span style="color:#710">'</span></span>].values:
-<span class="line-numbers"> <a href="#n6" name="n6">6</a></span>
-<span class="line-numbers"> <a href="#n7" name="n7">7</a></span>        filtered = format(tweet)
-<span class="line-numbers"> <a href="#n8" name="n8">8</a></span>        vectorized = phrase2vec(filtered)
-<span class="line-numbers"> <a href="#n9" name="n9">9</a></span>        training_data[counter] = vectorized
-<span class="line-numbers"><strong><a href="#n10" name="n10">10</a></strong></span>        counter+=<span style="color:#00D">1</span>
-<span class="line-numbers"><a href="#n11" name="n11">11</a></span>        
-<span class="line-numbers"><a href="#n12" name="n12">12</a></span>training_target = df[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">sentiment</span><span style="color:#710">'</span></span>].values
-</pre></div>
-</div>
-</div>
+    <span class="c">#strip the common &quot;RT&quot;</span>
+    <span class="n">stripped</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span> <span class="s">&#39;RT.&#39;</span><span class="p">,</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">stripped</span><span class="p">)</span>
 
-<p>Now we simply pick which ML algorithm we wish to train. In this case I will be using a random forest classifier. Once we train our model we can then easily export the results using scikit-learn’s joblib function, which operates on Python’s Pickle package (say that 5 times fast) to dump our Python classifier model to a file.</p>
+    <span class="c">#strip whitespace down to one.</span>
+    <span class="n">stripped</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s">&#39;[\s]+&#39;</span> <span class="p">,</span><span class="s">&#39; &#39;</span><span class="p">,</span> <span class="n">stripped</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
 
-<div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span class="line-numbers"> <a href="#n1" name="n1">1</a></span><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">sklearn.ensemble</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">RandomForestClassifier</span>
-<span class="line-numbers"> <a href="#n2" name="n2">2</a></span><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">sklearn.externals</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">joblib</span>
-<span class="line-numbers"> <a href="#n3" name="n3">3</a></span>
-<span class="line-numbers"> <a href="#n4" name="n4">4</a></span>cl = RandomForestClassifier()
-<span class="line-numbers"> <a href="#n5" name="n5">5</a></span>
-<span class="line-numbers"> <a href="#n6" name="n6">6</a></span>cl.fit(training_data, training_target)
-<span class="line-numbers"> <a href="#n7" name="n7">7</a></span>
-<span class="line-numbers"> <a href="#n8" name="n8">8</a></span>joblib.dump(cl,<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">Pickle/rfc.pkl</span><span style="color:#710">'</span></span>)
-<span class="line-numbers"> <a href="#n9" name="n9">9</a></span>
-</pre></div>
-</div>
-</div>
+    <span class="c">#strip multiple occurrences of letters</span>
+    <span class="n">stripped</span> <span class="o">=</span> <span class="n">multiple</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s">r&quot;\1\1&quot;</span><span class="p">,</span> <span class="n">stripped</span><span class="p">)</span>
 
-<p>That’s basically it for training. So far we have trained and exported a classifier to use in the future for predicting tweet sentiment. At this point it would normally be necessary to validate the model via the method of your choice. Scikit-learn has some nice cross-validation functionality for just this purpose, or you can grab the test data from the same Sentiment 140 folder and begin your testing metrics. For simple classification tasks like this I find F-scores to be rather useful. Also you should note that we have only used the default configured random forest classifier here, and there are many options with which to performance optimize your individual setup.</p>
+    <span class="c">#strip all non-latin characters</span>
+    <span class="c">#if we wish to deal with foreign language tweets, we would need to first </span>
+    <span class="c">#translate them before taking this step.</span>
 
-<h2 id="streaming-and-predicting-tweets">Streaming and Predicting Tweets</h2>
+    <span class="n">stripped</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s">&#39;[^a-zA-Z0-9|</span><span class="se">\&#39;</span><span class="s">]&#39;</span><span class="p">,</span> <span class="s">&quot; &quot;</span><span class="p">,</span> <span class="n">stripped</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
 
-<p>Now that we have a model, we can move to predicting a tweet stream in realtime. In order to start streaming tweets, we’ll use a nice Python package called Tweepy, which interfaces with the Twitter API and allows us to focus our attention on the task at hand rather than dealing with Oauth validation. You will need to get some credentials before we can start, so head over to <a href="https://apps.twitter.com">Twitter’s application page</a> and register your own “app” to receive access credentials.</p>
+    <span class="k">return</span> <span class="n">stripped</span>
+</code></pre></div>
+<p>Take a look at <a href="https://docs.python.org/2/howto/regex.html">Python&#39;s RegEx HOW-TO</a> if you&#39;re confused on the above format. You can also test them out yourself by visiting <a href="http://regexr.com">Regexr</a>.</p>
 
-<p>Once you’ve got your credentials and installed the Tweepy we can proceed to setting up a streaming client. In this example I’ll set one up that outputs the sentiment-valued stream to file. First we need to construct a <code>Listener</code> class that inherits from<code>tweepy.streaming.StreamListener</code>. We’ll also be handling JSON, so we need to import Python’s JSON module as well. We will use the on_data method to perform a task every time we receive a tweet.</p>
+<h2>Training the Classifier</h2>
 
-<div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span class="line-numbers"> <a href="#n1" name="n1">1</a></span><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">tweepy.streaming</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">StreamListener</span>
-<span class="line-numbers"> <a href="#n2" name="n2">2</a></span><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">tweepy</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">OAuthHandler</span>
-<span class="line-numbers"> <a href="#n3" name="n3">3</a></span><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">tweepy</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">Stream</span>
-<span class="line-numbers"> <a href="#n4" name="n4">4</a></span><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">json</span>
-<span class="line-numbers"> <a href="#n5" name="n5">5</a></span><span style="color:#080;font-weight:bold">from</span> <span style="color:#B44;font-weight:bold">datetime</span> <span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">datetime</span>
-<span class="line-numbers"> <a href="#n6" name="n6">6</a></span><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">time</span>
-<span class="line-numbers"> <a href="#n7" name="n7">7</a></span>
-<span class="line-numbers"> <a href="#n8" name="n8">8</a></span>
-<span class="line-numbers"> <a href="#n9" name="n9">9</a></span>
-<span class="line-numbers"><strong><a href="#n10" name="n10">10</a></strong></span>
-<span class="line-numbers"><a href="#n11" name="n11">11</a></span><span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">get_sentiment</span>(text, stop , model, trained_classifier):
-<span class="line-numbers"><a href="#n12" name="n12">12</a></span>    cl = trained_classifier
-<span class="line-numbers"><a href="#n13" name="n13">13</a></span>    vec = phrase2vec(text,stop,model)
-<span class="line-numbers"><a href="#n14" name="n14">14</a></span>    pred = cl.predict_proba(vec)[<span style="color:#00D">0</span>][<span style="color:#00D">1</span>]
-<span class="line-numbers"><a href="#n15" name="n15">15</a></span>    <span style="color:#080;font-weight:bold">return</span> pred
-<span class="line-numbers"><a href="#n16" name="n16">16</a></span>        
-<span class="line-numbers"><a href="#n17" name="n17">17</a></span>
-<span class="line-numbers"><a href="#n18" name="n18">18</a></span><span style="color:#080;font-weight:bold">class</span> <span style="color:#B06;font-weight:bold">Listener</span>(StreamListener):
-<span class="line-numbers"><a href="#n19" name="n19">19</a></span>    
-<span class="line-numbers"><strong><a href="#n20" name="n20">20</a></strong></span>    <span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">__init__</span>(<span style="color:#069">self</span>, classifier, stops, model,start):
-<span class="line-numbers"><a href="#n21" name="n21">21</a></span>        <span style="color:#069">self</span>.cl = classifier
-<span class="line-numbers"><a href="#n22" name="n22">22</a></span>        <span style="color:#069">self</span>.stop = stops
-<span class="line-numbers"><a href="#n23" name="n23">23</a></span>        <span style="color:#069">self</span>.model = model
-<span class="line-numbers"><a href="#n24" name="n24">24</a></span>                <span style="color:#069">self</span>.start = start
-<span class="line-numbers"><a href="#n25" name="n25">25</a></span>    
-<span class="line-numbers"><a href="#n26" name="n26">26</a></span>        
-<span class="line-numbers"><a href="#n27" name="n27">27</a></span>    
-<span class="line-numbers"><a href="#n28" name="n28">28</a></span>    <span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">on_data</span>(<span style="color:#069">self</span>, data):
-<span class="line-numbers"><a href="#n29" name="n29">29</a></span>        <span style="color:#777">#parse json from data event</span>
-<span class="line-numbers"><strong><a href="#n30" name="n30">30</a></strong></span>        elem = json.loads(data)
-<span class="line-numbers"><a href="#n31" name="n31">31</a></span>                
-<span class="line-numbers"><a href="#n32" name="n32">32</a></span>        <span style="color:#080;font-weight:bold">with</span> <span style="color:#369;font-weight:bold">open</span>(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">./Data/{0}</span><span style="color:#710">&quot;</span></span>.format(sys.argv[<span style="color:#00D">1</span>]),<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">a</span><span style="color:#710">'</span></span>) <span style="color:#080;font-weight:bold">as</span> f:
-<span class="line-numbers"><a href="#n33" name="n33">33</a></span>            writer = csv.writer(f,codecs.getwriter(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">utf-8</span><span style="color:#710">'</span></span>)(sys.stdout))
-<span class="line-numbers"><a href="#n34" name="n34">34</a></span>            tweet = elem[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">text</span><span style="color:#710">'</span></span>]
-<span class="line-numbers"><a href="#n35" name="n35">35</a></span>            <span style="color:#080;font-weight:bold">if</span> elem[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">lang</span><span style="color:#710">'</span></span>] ==  <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">en</span><span style="color:#710">'</span></span> <span style="color:#080;font-weight:bold">or</span> elem[<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">lang</span><span style="color:#710">'</span></span>] ==  <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">en-gb</span><span style="color:#710">'</span></span>:
-<span class="line-numbers"><a href="#n36" name="n36">36</a></span>                filtered = format(tweet)
-<span class="line-numbers"><a href="#n37" name="n37">37</a></span>        
-<span class="line-numbers"><a href="#n38" name="n38">38</a></span>        
-<span class="line-numbers"><a href="#n39" name="n39">39</a></span>                <span style="color:#080;font-weight:bold">if</span> <span style="color:#369;font-weight:bold">len</span>(filtered.split()) &gt; <span style="color:#00D">2</span>:
-<span class="line-numbers"><strong><a href="#n40" name="n40">40</a></strong></span>                    sentiment = get_sentiment(filtered, <span style="color:#069">self</span>.stop, <span style="color:#069">self</span>.model, <span style="color:#069">self</span>.cl)
-<span class="line-numbers"><a href="#n41" name="n41">41</a></span>                    
-<span class="line-numbers"><a href="#n42" name="n42">42</a></span>                    writer.writerow( [tweet,
-<span class="line-numbers"><a href="#n43" name="n43">43</a></span>                                      filtered,
-<span class="line-numbers"><a href="#n44" name="n44">44</a></span>                                      sentiment,
-<span class="line-numbers"><a href="#n45" name="n45">45</a></span>                                      datetime.utcnow()])
-<span class="line-numbers"><a href="#n46" name="n46">46</a></span>        
-<span class="line-numbers"><a href="#n47" name="n47">47</a></span>    
-<span class="line-numbers"><a href="#n48" name="n48">48</a></span>                            
-<span class="line-numbers"><a href="#n49" name="n49">49</a></span>                    
-<span class="line-numbers"><strong><a href="#n50" name="n50">50</a></strong></span>                    
-<span class="line-numbers"><a href="#n51" name="n51">51</a></span>        t1 = time.time()
-<span class="line-numbers"><a href="#n52" name="n52">52</a></span>        t0 = <span style="color:#069">self</span>.start
-<span class="line-numbers"><a href="#n53" name="n53">53</a></span>        <span style="color:#080;font-weight:bold">if</span> t1-t0 &lt;= <span style="color:#369;font-weight:bold">float</span>(sys.argv[<span style="color:#00D">2</span>])*<span style="color:#60E">3600.</span>:
-<span class="line-numbers"><a href="#n54" name="n54">54</a></span>            sys.stdout.write(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#b0b">\r</span><span style="color:#D20">{0}</span><span style="color:#710">&quot;</span></span>.format(t1-t0))
-<span class="line-numbers"><a href="#n55" name="n55">55</a></span>            sys.stdout.flush()
-<span class="line-numbers"><a href="#n56" name="n56">56</a></span>            <span style="color:#080;font-weight:bold">return</span> <span style="color:#069">True</span>
-<span class="line-numbers"><a href="#n57" name="n57">57</a></span>        <span style="color:#080;font-weight:bold">else</span>:
-<span class="line-numbers"><a href="#n58" name="n58">58</a></span>            <span style="color:#080;font-weight:bold">print</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#b0b">\n</span><span style="color:#D20">Time's Up!</span><span style="color:#710">&quot;</span></span>
-<span class="line-numbers"><a href="#n59" name="n59">59</a></span>            <span style="color:#080;font-weight:bold">return</span> <span style="color:#069">False</span>
-<span class="line-numbers"><strong><a href="#n60" name="n60">60</a></strong></span>            
-<span class="line-numbers"><a href="#n61" name="n61">61</a></span>            
-<span class="line-numbers"><a href="#n62" name="n62">62</a></span>            
-<span class="line-numbers"><a href="#n63" name="n63">63</a></span>    <span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">on_error</span>(<span style="color:#069">self</span>, status):
-<span class="line-numbers"><a href="#n64" name="n64">64</a></span>        <span style="color:#080;font-weight:bold">print</span> status
-</pre></div>
-</div>
-</div>
+<p>Now we&#39;re ready to train our classifier. Let&#39;s start off by making an array of feature vectors for our training data, as well as an array of target values for the sentiment. </p>
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="c">#initialize a numpy array to the proper shape and a counter. </span>
+<span class="n">training_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">300</span><span class="p">))</span>
+<span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="c">#add vectorized tweet text to numpy array.</span>
+<span class="k">for</span> <span class="n">tweet</span> <span class="ow">in</span> <span class="n">df</span><span class="p">[</span><span class="s">&#39;text&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
 
-<p>This class then takes incoming tweets and writes them to a file specified as the first argument. The second argument is reserved for the time (in hours) one wishes to keep the stream alive. You can easily edit this to continue indefinitely if desired.</p>
+    <span class="n">filtered</span> <span class="o">=</span> <span class="n">format</span><span class="p">(</span><span class="n">tweet</span><span class="p">)</span>
+    <span class="n">vectorized</span> <span class="o">=</span> <span class="n">phrase2vec</span><span class="p">(</span><span class="n">filtered</span><span class="p">)</span>
+    <span class="n">training_data</span><span class="p">[</span><span class="n">counter</span><span class="p">]</span> <span class="o">=</span> <span class="n">vectorized</span>
+    <span class="n">counter</span><span class="o">+=</span><span class="mi">1</span>
+
+<span class="n">training_target</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s">&#39;sentiment&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+</code></pre></div>
+<p>Now we simply pick which ML algorithm we wish to train. In this case I will be using a random forest classifier. Once we train our model we can then easily export the results using scikit-learn&#39;s joblib function, which operates on Python&#39;s Pickle package (say that 5 times fast) to dump our Python classifier model to a file.</p>
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">from</span> <span class="nn">sklearn.ensemble</span> <span class="kn">import</span> <span class="n">RandomForestClassifier</span>
+<span class="kn">from</span> <span class="nn">sklearn.externals</span> <span class="kn">import</span> <span class="n">joblib</span>
+
+<span class="n">cl</span> <span class="o">=</span> <span class="n">RandomForestClassifier</span><span class="p">()</span>
+
+<span class="n">cl</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">training_data</span><span class="p">,</span> <span class="n">training_target</span><span class="p">)</span>
+
+<span class="n">joblib</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">cl</span><span class="p">,</span><span class="s">&#39;Pickle/rfc.pkl&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p>That&#39;s basically it for training. So far we have trained and exported a classifier to use in the future for predicting tweet sentiment. At this point it would normally be necessary to validate the model via the method of your choice. Scikit-learn has some nice cross-validation functionality for just this purpose, or you can grab the test data from the same Sentiment 140 folder and begin your testing metrics. For simple classification tasks like this I find F-scores to be rather useful. Also you should note that we have only used the default configured random forest classifier here, and there are many options with which to performance optimize your individual setup.</p>
+
+<h2>Streaming and Predicting Tweets</h2>
+
+<p>Now that we have a model, we can move to predicting a tweet stream in realtime. In order to start streaming tweets, we&#39;ll use a nice Python package called Tweepy, which interfaces with the Twitter API and allows us to focus our attention on the task at hand rather than dealing with Oauth validation. You will need to get some credentials before we can start, so head over to <a href="https://apps.twitter.com">Twitter&#39;s application page</a> and register your own &quot;app&quot; to receive access credentials. </p>
+
+<p>Once you&#39;ve got your credentials and installed the Tweepy we can proceed to setting up a streaming client. In this example I&#39;ll set one up that outputs the sentiment-valued stream to file. First we need to construct a <code>Listener</code> class that inherits from<code>tweepy.streaming.StreamListener</code>. We&#39;ll also be handling JSON, so we need to import Python&#39;s JSON module as well. We will use the on_data method to perform a task every time we receive a tweet. </p>
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">from</span> <span class="nn">tweepy.streaming</span> <span class="kn">import</span> <span class="n">StreamListener</span>
+<span class="kn">from</span> <span class="nn">tweepy</span> <span class="kn">import</span> <span class="n">OAuthHandler</span>
+<span class="kn">from</span> <span class="nn">tweepy</span> <span class="kn">import</span> <span class="n">Stream</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+
+
+
+<span class="k">def</span> <span class="nf">get_sentiment</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">stop</span> <span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">trained_classifier</span><span class="p">):</span>
+    <span class="n">cl</span> <span class="o">=</span> <span class="n">trained_classifier</span>
+    <span class="n">vec</span> <span class="o">=</span> <span class="n">phrase2vec</span><span class="p">(</span><span class="n">text</span><span class="p">,</span><span class="n">stop</span><span class="p">,</span><span class="n">model</span><span class="p">)</span>
+    <span class="n">pred</span> <span class="o">=</span> <span class="n">cl</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">pred</span>
+
+
+<span class="k">class</span> <span class="nc">Listener</span><span class="p">(</span><span class="n">StreamListener</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">classifier</span><span class="p">,</span> <span class="n">stops</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span><span class="n">start</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cl</span> <span class="o">=</span> <span class="n">classifier</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stop</span> <span class="o">=</span> <span class="n">stops</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
+
+
+
+    <span class="k">def</span> <span class="nf">on_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="c">#parse json from data event</span>
+        <span class="n">elem</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s">&quot;./Data/{0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span><span class="s">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">codecs</span><span class="o">.</span><span class="n">getwriter</span><span class="p">(</span><span class="s">&#39;utf-8&#39;</span><span class="p">)(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">))</span>
+            <span class="n">tweet</span> <span class="o">=</span> <span class="n">elem</span><span class="p">[</span><span class="s">&#39;text&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">elem</span><span class="p">[</span><span class="s">&#39;lang&#39;</span><span class="p">]</span> <span class="o">==</span>  <span class="s">&#39;en&#39;</span> <span class="ow">or</span> <span class="n">elem</span><span class="p">[</span><span class="s">&#39;lang&#39;</span><span class="p">]</span> <span class="o">==</span>  <span class="s">&#39;en-gb&#39;</span><span class="p">:</span>
+                <span class="n">filtered</span> <span class="o">=</span> <span class="n">format</span><span class="p">(</span><span class="n">tweet</span><span class="p">)</span>
+
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered</span><span class="o">.</span><span class="n">split</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">sentiment</span> <span class="o">=</span> <span class="n">get_sentiment</span><span class="p">(</span><span class="n">filtered</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cl</span><span class="p">)</span>
+
+                    <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span> <span class="p">[</span><span class="n">tweet</span><span class="p">,</span>
+                                      <span class="n">filtered</span><span class="p">,</span>
+                                      <span class="n">sentiment</span><span class="p">,</span>
+                                      <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()])</span>
+
+
+
+
+
+        <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span>
+        <span class="k">if</span> <span class="n">t1</span><span class="o">-</span><span class="n">t0</span> <span class="o">&lt;=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">*</span><span class="mf">3600.</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\r</span><span class="s">{0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t1</span><span class="o">-</span><span class="n">t0</span><span class="p">))</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">print</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">Time&#39;s Up!&quot;</span>
+            <span class="k">return</span> <span class="bp">False</span>
+
+
+
+    <span class="k">def</span> <span class="nf">on_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="p">):</span>
+        <span class="k">print</span> <span class="n">status</span>
+</code></pre></div>
+<p>This class then takes incoming tweets and writes them to a file specified as the first argument. The second argument is reserved for the time (in hours) one wishes to keep the stream alive. You can easily edit this to continue indefinitely if desired. </p>
 
 <p>From here on in we must merely load in models and setup the stream with our credentials.</p>
+<div class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
 
-<div class="highlighter-coderay"><div class="CodeRay">
-  <div class="code"><pre><span class="line-numbers"> <a href="#n1" name="n1">1</a></span><span style="color:#080;font-weight:bold">if</span> __name__ == <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">__main__</span><span style="color:#710">'</span></span>:
-<span class="line-numbers"> <a href="#n2" name="n2">2</a></span>
-<span class="line-numbers"> <a href="#n3" name="n3">3</a></span>    <span style="color:#777">####################Variables that contain the user credentials for the Twitter API </span>
-<span class="line-numbers"> <a href="#n4" name="n4">4</a></span>    access_token = <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">ACCESS_TOKEN</span><span style="color:#710">&quot;</span></span>
-<span class="line-numbers"> <a href="#n5" name="n5">5</a></span>    access_token_secret = <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">ACCESS_TOKEN_SECRET</span><span style="color:#710">&quot;</span></span>
-<span class="line-numbers"> <a href="#n6" name="n6">6</a></span>    consumer_key = <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">CONSUMER_KEY</span><span style="color:#710">&quot;</span></span>
-<span class="line-numbers"> <a href="#n7" name="n7">7</a></span>    consumer_secret = <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">CONSUMER_SECRET</span><span style="color:#710">&quot;</span></span>
-<span class="line-numbers"> <a href="#n8" name="n8">8</a></span>    <span style="color:#777">#########################################################</span>
-<span class="line-numbers"> <a href="#n9" name="n9">9</a></span>    
-<span class="line-numbers"><strong><a href="#n10" name="n10">10</a></strong></span>    <span style="color:#777">#Write file header</span>
-<span class="line-numbers"><a href="#n11" name="n11">11</a></span>    f=<span style="color:#369;font-weight:bold">open</span>(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">./Data/{0}</span><span style="color:#710">&quot;</span></span>.format(sys.argv[<span style="color:#00D">1</span>]),<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">w</span><span style="color:#710">'</span></span>)
-<span class="line-numbers"><a href="#n12" name="n12">12</a></span>    f.write(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">original_text,filtered_output,sentiment,time </span><span style="color:#b0b">\n</span><span style="color:#710">&quot;</span></span>)
-<span class="line-numbers"><a href="#n13" name="n13">13</a></span>    f.close()
-<span class="line-numbers"><a href="#n14" name="n14">14</a></span>    
-<span class="line-numbers"><a href="#n15" name="n15">15</a></span>    
-<span class="line-numbers"><a href="#n16" name="n16">16</a></span>    <span style="color:#080;font-weight:bold">print</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Loading Classifier...</span><span style="color:#b0b">\n</span><span style="color:#b0b">\n</span><span style="color:#710">&quot;</span></span>
-<span class="line-numbers"><a href="#n17" name="n17">17</a></span>    
-<span class="line-numbers"><a href="#n18" name="n18">18</a></span>    <span style="color:#777">#load trained sklearn classifier</span>
-<span class="line-numbers"><a href="#n19" name="n19">19</a></span>    cl=joblib.load(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">Pickle/rfc.pkl</span><span style="color:#710">'</span></span>)
-<span class="line-numbers"><strong><a href="#n20" name="n20">20</a></strong></span>    
-<span class="line-numbers"><a href="#n21" name="n21">21</a></span>    <span style="color:#080;font-weight:bold">print</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Classifier Loaded...loading model...</span><span style="color:#b0b">\n</span><span style="color:#b0b">\n</span><span style="color:#710">&quot;</span></span>
-<span class="line-numbers"><a href="#n22" name="n22">22</a></span>    
-<span class="line-numbers"><a href="#n23" name="n23">23</a></span>    <span style="color:#777">#load w2v vectors from GoogleNews training set. </span>
-<span class="line-numbers"><a href="#n24" name="n24">24</a></span>    model= gs.models.Word2Vec.load_word2vec_format(
-<span class="line-numbers"><a href="#n25" name="n25">25</a></span>           <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">./static/Data/GoogleNews-vectors-negative300.bin</span><span style="color:#710">'</span></span>,binary=<span style="color:#069">True</span>)
-<span class="line-numbers"><a href="#n26" name="n26">26</a></span>    
-<span class="line-numbers"><a href="#n27" name="n27">27</a></span>    
-<span class="line-numbers"><a href="#n28" name="n28">28</a></span>    <span style="color:#080;font-weight:bold">print</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Model Loaded...</span><span style="color:#b0b">\n</span><span style="color:#b0b">\n</span><span style="color:#710">&quot;</span></span>
-<span class="line-numbers"><a href="#n29" name="n29">29</a></span>    
-<span class="line-numbers"><strong><a href="#n30" name="n30">30</a></strong></span>    <span style="color:#777">#load set of stop words</span>
-<span class="line-numbers"><a href="#n31" name="n31">31</a></span>    stop_set = <span style="color:#369;font-weight:bold">set</span>(stopwords.words(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">english</span><span style="color:#710">&quot;</span></span>))
-<span class="line-numbers"><a href="#n32" name="n32">32</a></span>    
-<span class="line-numbers"><a href="#n33" name="n33">33</a></span>    start = time.time()
-<span class="line-numbers"><a href="#n34" name="n34">34</a></span>    
-<span class="line-numbers"><a href="#n35" name="n35">35</a></span>    l = Listener(cl,stop_set,model,start)
-<span class="line-numbers"><a href="#n36" name="n36">36</a></span>    
-<span class="line-numbers"><a href="#n37" name="n37">37</a></span>    <span style="color:#777">#This handles Twitter authentication and the connection to Twitter Streaming API</span>
-<span class="line-numbers"><a href="#n38" name="n38">38</a></span>    
-<span class="line-numbers"><a href="#n39" name="n39">39</a></span>    <span style="color:#777">#Oauth Handling</span>
-<span class="line-numbers"><strong><a href="#n40" name="n40">40</a></strong></span>    auth = OAuthHandler(consumer_key, consumer_secret)
-<span class="line-numbers"><a href="#n41" name="n41">41</a></span>    auth.set_access_token(access_token, access_token_secret)
-<span class="line-numbers"><a href="#n42" name="n42">42</a></span>    
-<span class="line-numbers"><a href="#n43" name="n43">43</a></span>    stream = Stream(auth, l)
-<span class="line-numbers"><a href="#n44" name="n44">44</a></span>    <span style="color:#080;font-weight:bold">print</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Listening...</span><span style="color:#710">&quot;</span></span>
-<span class="line-numbers"><a href="#n45" name="n45">45</a></span>    
-<span class="line-numbers"><a href="#n46" name="n46">46</a></span>    <span style="color:#777">#initiate stream</span>
-<span class="line-numbers"><a href="#n47" name="n47">47</a></span>    stream.sample()
-<span class="line-numbers"><a href="#n48" name="n48">48</a></span>    
-</pre></div>
-</div>
-</div>
+    <span class="c">####################Variables that contain the user credentials for the Twitter API </span>
+    <span class="n">access_token</span> <span class="o">=</span> <span class="s">&quot;ACCESS_TOKEN&quot;</span>
+    <span class="n">access_token_secret</span> <span class="o">=</span> <span class="s">&quot;ACCESS_TOKEN_SECRET&quot;</span>
+    <span class="n">consumer_key</span> <span class="o">=</span> <span class="s">&quot;CONSUMER_KEY&quot;</span>
+    <span class="n">consumer_secret</span> <span class="o">=</span> <span class="s">&quot;CONSUMER_SECRET&quot;</span>
+    <span class="c">#########################################################</span>
 
+    <span class="c">#Write file header</span>
+    <span class="n">f</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="s">&quot;./Data/{0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span><span class="s">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;original_text,filtered_output,sentiment,time </span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+
+    <span class="k">print</span> <span class="s">&quot;Loading Classifier...</span><span class="se">\n\n</span><span class="s">&quot;</span>
+
+    <span class="c">#load trained sklearn classifier</span>
+    <span class="n">cl</span><span class="o">=</span><span class="n">joblib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;Pickle/rfc.pkl&#39;</span><span class="p">)</span>
+
+    <span class="k">print</span> <span class="s">&quot;Classifier Loaded...loading model...</span><span class="se">\n\n</span><span class="s">&quot;</span>
+
+    <span class="c">#load w2v vectors from GoogleNews training set. </span>
+    <span class="n">model</span><span class="o">=</span> <span class="n">gs</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">Word2Vec</span><span class="o">.</span><span class="n">load_word2vec_format</span><span class="p">(</span>
+           <span class="s">&#39;./static/Data/GoogleNews-vectors-negative300.bin&#39;</span><span class="p">,</span><span class="n">binary</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+
+    <span class="k">print</span> <span class="s">&quot;Model Loaded...</span><span class="se">\n\n</span><span class="s">&quot;</span>
+
+    <span class="c">#load set of stop words</span>
+    <span class="n">stop_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">stopwords</span><span class="o">.</span><span class="n">words</span><span class="p">(</span><span class="s">&quot;english&quot;</span><span class="p">))</span>
+
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="n">l</span> <span class="o">=</span> <span class="n">Listener</span><span class="p">(</span><span class="n">cl</span><span class="p">,</span><span class="n">stop_set</span><span class="p">,</span><span class="n">model</span><span class="p">,</span><span class="n">start</span><span class="p">)</span>
+
+    <span class="c">#This handles Twitter authentication and the connection to Twitter Streaming API</span>
+
+    <span class="c">#Oauth Handling</span>
+    <span class="n">auth</span> <span class="o">=</span> <span class="n">OAuthHandler</span><span class="p">(</span><span class="n">consumer_key</span><span class="p">,</span> <span class="n">consumer_secret</span><span class="p">)</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">set_access_token</span><span class="p">(</span><span class="n">access_token</span><span class="p">,</span> <span class="n">access_token_secret</span><span class="p">)</span>
+
+    <span class="n">stream</span> <span class="o">=</span> <span class="n">Stream</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
+    <span class="k">print</span> <span class="s">&quot;Listening...&quot;</span>
+
+    <span class="c">#initiate stream</span>
+    <span class="n">stream</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
+</code></pre></div>
 <p>When we run the file <code>python path_to_script.py output_file_name time</code> we should then see our file being populated with tweets and their corresponding sentiments.</p>
 
-<h1 id="more-to-come">More to Come</h1>
-<p>This concludes the first post on SentiMap.us. Hopefully you’ve gained a basic understanding of the nuts and bolts behind realtime sentiment analysis for twitter streams.</p>
+<h1>More to Come</h1>
 
-<p>In the next post we will cover using MongoDB to hold fixed size collections of tweets, setting up a basic web server using Flask, and serving out data to servers using the PubSub messaging queue paradigm.</p>
+<p>This concludes the first post on SentiMap.us. Hopefully you&#39;ve gained a basic understanding of the nuts and bolts behind realtime sentiment analysis for twitter streams. </p>
 
+<p>In the next post we will cover using MongoDB to hold fixed size collections of tweets, setting up a basic web server using Flask, and serving out data to servers using the PubSub messaging queue paradigm. </p>
 
 
                 <hr>

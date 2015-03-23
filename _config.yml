@@ -9,7 +9,7 @@ github_username:  tjtorres
 
 
 # Build settings
-markdown: kramdown
+markdown: redcarpet
 highlighter: pygments
 permalink: pretty
 paginate: 5
