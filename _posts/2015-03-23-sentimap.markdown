@@ -140,7 +140,7 @@ multiple = re.compile(r"(.)\1{1,}", re.DOTALL)
 def format(tweet):
 
     #strip emoji
-    stripped = emoji.sub('',elem['text'])
+    stripped = emoji.sub('',tweet)
     
     #strip URLs
     stripped = re.sub(r'http[s]?[^\s]+','', stripped)
